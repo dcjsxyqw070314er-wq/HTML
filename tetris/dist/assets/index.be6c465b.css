@@ -1,0 +1,1 @@
+@keyframes scaleDown{0%{transform:scale(1);opacity:1}to{transform:scale(.3);opacity:.35}}@keyframes fadeOut{0%{opacity:1}to{opacity:0}}@keyframes fadeIn{0%{opacity:0}to{opacity:1}}.hidden{animation:fadeOut .15s ease-out both}.scaledDown{animation:scaleDown .15s ease-in both}#canvas-root{animation:fadeIn 2.5s ease-out both}#react-root{animation:fadeIn 3.2s ease-out both}

@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scene 2</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { width: 100%; height: 100%; overflow: hidden; }
+        
+        #bedroomBg {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            object-fit: cover;
+            z-index: 1;
+        }
+
+        #windowContainer {
+            position: fixed;
+            top: 5px; left: 210px;
+            width: 880px; height: 400px;
+            perspective: 1500px;
+            z-index: 10;
+        }
+        
+        #clothContainer {
+            width: 100%; height: 100%;
+            transform: rotateY(35deg) rotateX(10deg);
+            transform-style: preserve-3d;
+            transform-origin: center center;
+            touch-action: none;
+            cursor: grab;
+        }
+
+        #clothContainer:active { cursor: grabbing; }
+        canvas { display: block; width: 100%; height: 100%; }
+
+        #flashOverlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: white;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        .cup {
+            position: fixed;
+            cursor: pointer;
+            z-index: 11;
+        }
+
+        #returnBedroomBtn {
+            position: fixed;
+            top: 30px; left: 30px;
+            padding: 8px 22px;
+            background: rgba(255, 255, 255, 0.25);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.6);
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            font-family: "Noto Serif SC", serif;
+            z-index: 50;
+            display: none;
+            transition: all 0.3s;
+        }
+
+        #returnBedroomBtn:hover {
+            background: rgba(255, 255, 255, 0.45);
+        }
+
+        .hint-text {
+            position: fixed;
+            color: rgba(255, 255, 255, 0.95);
+            font-family: "Noto Serif SC", serif;
+            font-size: 18px;
+            pointer-events: none;
+            z-index: 20;
+            text-shadow: 0 1px 8px rgba(0,0,0,0.6);
+            transition: opacity 1s;
+            background: rgba(0, 0, 0, 0.28);
+            padding: 8px 18px;
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            letter-spacing: 3px;
+            backdrop-filter: blur(4px);
+        }
+
+        #hintOr {
+            position: fixed;
+            display: none;
+            pointer-events: none;
+            z-index: 20;
+            font-family: "Noto Serif SC", serif;
+            font-size: 40px;
+            font-weight: 680;
+            color: rgba(255, 255, 255, 0.95);
+            letter-spacing: 6px;
+            text-shadow: 0 1px 8px rgba(0,0,0,0.6);
+            background: rgba(0, 0, 0, 0.28);
+            padding: 3px 26px 12px 26px;
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(4px);
+            transition: opacity 0.5s;
+        }
+
+        /* ===== 游戏机 ===== */
+        #gameboyWrapper {
+            position: fixed;
+            right: 366px;
+            bottom: -20px;
+            z-index: 12;
+            cursor: pointer;
+            width: 200px;
+            transform: translateY(0px) rotate(-4deg);
+            filter: drop-shadow(0 12px 20px rgba(0,0,0,0.6)) drop-shadow(0 4px 8px rgba(0,0,0,0.4));
+            transition: transform 0.3s ease, filter 0.3s ease;
+            opacity: 0.85;
+        }
+
+        #gameboyWrapper:hover {
+            transform: translateY(-8px) rotate(-4deg);
+            filter: drop-shadow(0 18px 28px rgba(0,0,0,0.65)) drop-shadow(0 6px 12px rgba(0,0,0,0.45)) brightness(1.06);
+        }
+
+        #gameboyWrapper img {
+            width: 100%;
+            display: block;
+        }
+
+        #gameboyWrapper::after {
+            content: '';
+            position: absolute;
+            top: 22%; left: 22%;
+            width: 56%; height: 30%;
+            background: radial-gradient(ellipse, rgba(180,220,120,0.18) 0%, transparent 70%);
+            border-radius: 6px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+
+        #gameboyWrapper:hover::after {
+            opacity: 1;
+        }
+
+        /* 游戏机提示文字 */
+        #hintGameboy {
+            position: fixed;
+            right: 395px;
+            bottom: 115px;
+            z-index: 20;
+            pointer-events: none;
+            transition: opacity 1s;
+        }
+
+        /* ===== 窗户热区 ===== */
+        #windowHotspot {
+            display: none;
+        }
+
+        /* 窗户 next 提示 — 固定位置，视觉上在布帘上方但不拦截鼠标 */
+        #hintWindow {
+            position: fixed;
+            left: 620px;
+            top: 310px;
+            z-index: 11;
+            pointer-events: none;
+            visibility: hidden;
+            opacity: 0;
+            transition: opacity 0.5s ease, visibility 0.5s ease;
+            color: rgba(255, 255, 255, 0.95);
+            font-family: "Noto Serif SC", serif;
+            font-size: 18px;
+            text-shadow: 0 1px 8px rgba(0,0,0,0.6);
+            background: rgba(0, 0, 0, 0.28);
+            padding: 8px 18px;
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            letter-spacing: 3px;
+            backdrop-filter: blur(4px);
+        }
+        #hintWindow.parted {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        /* ===== 游戏弹窗 ===== */
+        #gameModal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 200;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #gameModalBg {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(20, 12, 6, 0.82);
+            backdrop-filter: blur(6px);
+            cursor: pointer;
+        }
+
+        #gameModalBox {
+            position: relative;
+            z-index: 1;
+            width: 92vw;
+            height: 92vh;
+            max-width: 1300px;
+            border-radius: 18px;
+            overflow: visible;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+            border: none;
+            animation: modalIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+
+        #gameModalInner {
+            width: 100%;
+            height: 100%;
+            border-radius: 18px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        #gameModalInner iframe {
+            pointer-events: auto;
+            position: absolute;
+            top: 0; left: 0;
+            width: 100% !important;
+            height: 100% !important;
+            border: none;
+            overflow: hidden;
+        }
+
+        @keyframes modalIn {
+            from { transform: scale(0.85) translateY(30px); opacity: 0; }
+            to   { transform: scale(1) translateY(0); opacity: 1; }
+        }
+
+        #gameCloseBtn {
+            position: absolute;
+            top: -18px;
+            right: -18px;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: rgba(42, 31, 20, 0.97);
+            border: 2px solid rgba(255,255,255,0.4);
+            color: rgba(255, 255, 255, 0.95);
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 300;
+            transition: all 0.2s;
+            font-family: sans-serif;
+            line-height: 1;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.5);
+        }
+
+        #gameCloseBtn:hover {
+            background: rgba(200, 120, 60, 0.9);
+            transform: scale(1.1);
+        }
+    </style>
+</head>
+<body>
+    <video id="bedroomBg" autoplay muted loop>
+        <source src="./videos/bedroom.mp4" type="video/mp4">
+    </video>
+
+    <div id="windowContainer">
+        <div id="clothContainer"></div>
+    </div>
+
+    <button id="returnBedroomBtn">返回</button>
+
+    <div id="hintCloth" class="hint-text" style="left: 943px; top: 250px;">试着扯一下它</div>
+    <div id="hintCup" class="hint-text" style="left: 215px; top: 580px;">点击水杯</div>
+    <div id="hintOr">or</div>
+
+    <div id="hintGameboy" class="hint-text">点击游戏机</div>
+
+    <!-- 窗户热区 & next提示（撩开窗帘后显示） -->
+    <div id="windowHotspot"></div>
+    <div id="hintWindow">next ↓</div>
+
+    <div id="flashOverlay"></div>
+
+    <div id="waterCup" class="cup"></div>
+    <div id="orangeCup" class="cup"></div>
+
+    <div id="gameboyWrapper">
+        <img src="./images/游戏机.png" alt="游戏机" draggable="false" />
+    </div>
+
+    <div id="gameModal">
+        <div id="gameModalBg"></div>
+        <div id="gameModalBox">
+            <button id="gameCloseBtn">✕</button>
+            <div id="gameModalInner">
+                <iframe id="gameIframe" src="" allowfullscreen scrolling="no"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const QUOTES = [
+            "生存还是毁灭，这是一个值得思考的问题。",
+            "凡是过去，皆为序章。",
+            "爱所有人，信任少数人，不负任何人。",
+            "我们由梦想构成，短暂的一生都环绕着睡眠。",
+            "世界是一座舞台，所有男男女女不过是演员。"
+        ];
+
+        const TEXT_STREAM = Array.from(QUOTES.join(" / "));
+        const container = document.getElementById("clothContainer");
+        const flashOverlay = document.getElementById("flashOverlay");
+        const bedroomBg = document.getElementById("bedroomBg");
+
+        let canvas, ctx, particles = [], constraints = [], charCache = new Map();
+        let input, config, animationFrame = 0, lastTime = 0, resizeTimer = 0;
+        let currentScene = "bedroom";
+
+        function clamp(value, min, max) { return Math.min(max, Math.max(min, value)); }
+        function smoothstep(edge0, edge1, x) { const t = clamp((x - edge0) / (edge1 - edge0), 0, 1); return t * t * (3 - 2 * t); }
+        function getPointId(row, column, rowCount) { return column * rowCount + row; }
+
+        class Vec2 {
+            constructor(x = 0, y = 0) { this.x = x; this.y = y; }
+            copy(other) { this.x = other.x; this.y = other.y; }
+            clone() { return new Vec2(this.x, this.y); }
+            add(other) { this.x += other.x; this.y += other.y; return this; }
+            sub(other) { this.x -= other.x; this.y -= other.y; return this; }
+            scale(amount) { this.x *= amount; this.y *= amount; return this; }
+            length() { return Math.hypot(this.x, this.y); }
+            normalize() { const len = this.length() || 1; this.x /= len; this.y /= len; return this; }
+            set(x, y) { this.x = x; this.y = y; return this; }
+            clear() { this.x = 0; this.y = 0; return this; }
+        }
+
+        class Particle {
+            constructor(x, y, size, index, character) {
+                this.pos = new Vec2(x, y);
+                this.oldPos = new Vec2(x, y);
+                this.acceleration = new Vec2(0, 0);
+                this.pinned = false;
+                this.pinPos = new Vec2(x, y);
+                this.rotation = 0;
+                this.size = size;
+                this.character = character;
+            }
+            applyForce(force) { this.acceleration.add(force); }
+            pin() { this.pinned = true; this.pinPos.copy(this.pos); }
+            update(dt) {
+                if (this.pinned) {
+                    this.pos.copy(this.pinPos);
+                    this.oldPos.copy(this.pinPos);
+                    this.acceleration.clear();
+                    return;
+                }
+                const vx = (this.pos.x - this.oldPos.x) * config.damping;
+                const vy = (this.pos.y - this.oldPos.y) * config.damping;
+                const nextX = this.pos.x + vx + this.acceleration.x * dt * dt;
+                const nextY = this.pos.y + vy + this.acceleration.y * dt * dt;
+                this.oldPos.copy(this.pos);
+                this.pos.set(nextX, nextY);
+                this.acceleration.clear();
+            }
+            draw() {
+                if (this.character === " ") return;
+                const glyphCanvas = charCache.get(this.character);
+                if (!glyphCanvas) return;
+                ctx.setTransform(
+                    Math.cos(this.rotation) * config.pixelRatio,
+                    Math.sin(this.rotation) * config.pixelRatio,
+                    -Math.sin(this.rotation) * config.pixelRatio,
+                    Math.cos(this.rotation) * config.pixelRatio,
+                    (this.pos.x + config.offsetX) * config.pixelRatio,
+                    (this.pos.y + config.offsetY) * config.pixelRatio
+                );
+                ctx.drawImage(glyphCanvas, -this.size * 0.5, -this.size * 0.5, this.size, this.size);
+            }
+        }
+
+        class Constraint {
+            constructor(a, b, length) { this.a = a; this.b = b; this.length = length; }
+            satisfy() {
+                const delta = this.b.pos.clone().sub(this.a.pos);
+                const dist = delta.length() || 1;
+                const diff = (this.length - dist) / dist * config.stiffness;
+                const offset = delta.scale(diff * 0.5);
+                if (!this.a.pinned) this.a.pos.sub(offset);
+                if (!this.b.pinned) this.b.pos.add(offset);
+            }
+        }
+
+        class Input {
+            constructor(element) {
+                this.element = element;
+                this.pointer = new Vec2(0, 0);
+                this.prevPointer = new Vec2(0, 0);
+                this.dragged = null;
+                this.handlePointerDown = this.handlePointerDown.bind(this);
+                this.handlePointerMove = this.handlePointerMove.bind(this);
+                this.handlePointerUp = this.handlePointerUp.bind(this);
+                element.addEventListener("pointerdown", this.handlePointerDown);
+                window.addEventListener("pointermove", this.handlePointerMove, { passive: true });
+                window.addEventListener("pointerup", this.handlePointerUp);
+                window.addEventListener("pointercancel", this.handlePointerUp);
+            }
+            toLocalPosition(event) {
+                const rect = this.element.getBoundingClientRect();
+                return new Vec2(event.clientX - rect.left - config.offsetX, event.clientY - rect.top - config.offsetY);
+            }
+            handlePointerDown(event) {
+                const local = this.toLocalPosition(event);
+                this.pointer.copy(local);
+                this.prevPointer.copy(local);
+                this.dragged = this.findNearest(local);
+                if (this.dragged) this.dragged.pin();
+            }
+            handlePointerMove(event) {
+                const local = this.toLocalPosition(event);
+                this.pointer.copy(local);
+            }
+            handlePointerUp() {
+                if (this.dragged) { this.dragged.pinned = false; this.dragged = null; }
+            }
+            findNearest(position) {
+                let nearest = null, nearestDistance = config.influenceRadius;
+                for (const particle of particles) {
+                    const dx = position.x - particle.pos.x;
+                    const dy = position.y - particle.pos.y;
+                    const dist = Math.hypot(dx, dy);
+                    if (dist < nearestDistance) { nearestDistance = dist; nearest = particle; }
+                }
+                return nearest;
+            }
+            update() {
+                const velocity = this.pointer.clone().sub(this.prevPointer);
+                if (this.dragged) this.dragged.pinPos.copy(this.pointer);
+                for (const particle of particles) {
+                    const distance = this.pointer.clone().sub(particle.pos).length();
+                    if (distance < config.influenceRadius) {
+                        const force = smoothstep(config.influenceRadius, 0, distance) * config.mouseForce;
+                        particle.applyForce(velocity.clone().normalize().scale(force));
+                    }
+                }
+                this.prevPointer.copy(this.pointer);
+            }
+            destroy() {
+                this.element.removeEventListener("pointerdown", this.handlePointerDown);
+                window.removeEventListener("pointermove", this.handlePointerMove);
+                window.removeEventListener("pointerup", this.handlePointerUp);
+                window.removeEventListener("pointercancel", this.handlePointerUp);
+            }
+        }
+
+        function createGlyphCanvas(character, size) {
+            const glyphScale = config.glyphOversample;
+            const glyphCanvas = document.createElement("canvas");
+            glyphCanvas.width = Math.ceil(size * glyphScale);
+            glyphCanvas.height = Math.ceil(size * glyphScale);
+            const glyphCtx = glyphCanvas.getContext("2d");
+            glyphCtx.scale(glyphScale, glyphScale);
+            glyphCtx.imageSmoothingEnabled = true;
+            glyphCtx.imageSmoothingQuality = "high";
+            glyphCtx.fillStyle = config.glyphColor;
+            glyphCtx.textAlign = "center";
+            glyphCtx.textBaseline = "middle";
+            glyphCtx.font = `${config.glyphWeight} ${size * 0.72}px "Noto Serif SC", serif`;
+            glyphCtx.fillText(character, size * 0.5, size * 0.52);
+            return glyphCanvas;
+        }
+
+        function createCanvas() {
+            if (canvas) canvas.remove();
+            canvas = document.createElement("canvas");
+            canvas.width = Math.round(config.viewportWidth * config.pixelRatio);
+            canvas.height = Math.round(config.viewportHeight * config.pixelRatio);
+            canvas.style.width = "100%";
+            canvas.style.height = "100%";
+            ctx = canvas.getContext("2d", { alpha: true });
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = "high";
+            container.appendChild(canvas);
+        }
+
+        function calculateConfig() {
+            const viewportWidth = container.clientWidth;
+            const viewportHeight = container.clientHeight;
+            const pixelRatio = clamp(window.devicePixelRatio || 1, 1, 3);
+            const clothWidth = viewportWidth * 0.95;
+            const clothHeight = viewportHeight * 0.95;
+            const gridColumns = clamp(Math.floor(clothWidth / 14), 28, 84);
+            const gridRows = clamp(Math.floor(clothHeight / 18), 15, 45);
+            const cellWidth = clothWidth / gridColumns;
+            const cellHeight = clothHeight / gridRows;
+            const cellSize = Math.min(cellWidth, cellHeight) * 0.92;
+            return {
+                viewportWidth, viewportHeight, pixelRatio, clothWidth, clothHeight,
+                gridColumns, gridRows, cellWidth, cellHeight, cellSize,
+                offsetX: (viewportWidth - clothWidth) * 0.5,
+                offsetY: (viewportHeight - clothHeight) * 0.5,
+                gravity: 0.18, damping: 0.987, stiffness: 0.52, solverPasses: 8,
+                pinStride: Math.max(3, Math.floor(gridColumns / 10)),
+                influenceRadius: Math.max(cellSize * 3.5, 60),
+                mouseForce: Math.max(cellSize * 0.25, 1.8),
+                containParticles: false,
+                glyphWeight: 600, glyphColor: "#050505",
+                glyphOversample: Math.max(2, Math.ceil(pixelRatio))
+            };
+        }
+
+        function rebuildGlyphs() {
+            charCache = new Map();
+            for (const character of new Set(TEXT_STREAM)) {
+                if (character === " ") continue;
+                charCache.set(character, createGlyphCanvas(character, Math.ceil(config.cellSize)));
+            }
+        }
+
+        function buildScene() {
+            config = calculateConfig();
+            particles = [];
+            constraints = [];
+            createCanvas();
+            rebuildGlyphs();
+            for (let x = 0; x < config.gridColumns; x++) {
+                for (let y = 0; y < config.gridRows; y++) {
+                    const charIndex = (x + y * config.gridColumns) % TEXT_STREAM.length;
+                    const character = TEXT_STREAM[charIndex];
+                    const particle = new Particle(x * config.cellWidth, y * config.cellHeight, config.cellSize, charIndex, character);
+                    if (y === 0 && x % config.pinStride === 0) particle.pin();
+                    particles.push(particle);
+                }
+            }
+            for (let x = 0; x < config.gridColumns; x++) {
+                for (let y = 0; y < config.gridRows; y++) {
+                    const current = particles[getPointId(y, x, config.gridRows)];
+                    if (y < config.gridRows - 1) {
+                        const bottom = particles[getPointId(y + 1, x, config.gridRows)];
+                        constraints.push(new Constraint(current, bottom, config.cellHeight));
+                    }
+                    if (x < config.gridColumns - 1) {
+                        const right = particles[getPointId(y, x + 1, config.gridRows)];
+                        constraints.push(new Constraint(current, right, config.cellWidth));
+                    }
+                }
+            }
+            if (input) input.destroy();
+            input = new Input(canvas);
+        }
+
+        function updateParticles(frameDelta) {
+            const dt = frameDelta / 16.6667;
+            input.update();
+            for (const particle of particles) {
+                particle.applyForce(new Vec2(0, config.gravity));
+                particle.update(dt);
+            }
+            for (let pass = 0; pass < config.solverPasses; pass++) {
+                for (const constraint of constraints) constraint.satisfy();
+            }
+            for (let x = 0; x < config.gridColumns; x++) {
+                for (let y = 0; y < config.gridRows; y++) {
+                    const particle = particles[getPointId(y, x, config.gridRows)];
+                    if (y > 0) {
+                        const top = particles[getPointId(y - 1, x, config.gridRows)];
+                        const dx = top.pos.x - particle.pos.x;
+                        const dy = top.pos.y - particle.pos.y;
+                        particle.rotation = Math.atan2(dy, dx) + Math.PI * 0.5;
+                    }
+                }
+            }
+        }
+
+        function draw() {
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (const particle of particles) particle.draw();
+
+            if (currentScene !== "bedroom") return;
+
+            // 检测 hintWindow 中心点是否被粒子覆盖
+            const rect = hintWindow.getBoundingClientRect();
+            const cx = rect.left + rect.width / 2;
+            const cy = rect.top + rect.height / 2;
+            const covered = isPointCovered(cx, cy);
+
+            if (covered) {
+                hintWindow.classList.remove("parted");
+            } else {
+                hintWindow.classList.add("parted");
+            }
+        }
+
+        function tick(timestamp) {
+            const frameDelta = clamp(timestamp - lastTime || 16.6667, 12, 28);
+            lastTime = timestamp;
+            updateParticles(frameDelta);
+            draw();
+            animationFrame = window.requestAnimationFrame(tick);
+        }
+
+        // ===== 游戏弹窗逻辑 =====
+        const gameModal = document.getElementById("gameModal");
+        const gameIframe = document.getElementById("gameIframe");
+        const gameModalBg = document.getElementById("gameModalBg");
+        const gameCloseBtn = document.getElementById("gameCloseBtn");
+        const gameboyWrapper = document.getElementById("gameboyWrapper");
+        const hintGameboy = document.getElementById("hintGameboy");
+
+        function openGame() {
+            document.body.style.overflow = "hidden";
+            document.documentElement.style.overflow = "hidden";
+            gameIframe.src = "./tetris/dist/index.html";
+            gameModal.style.display = "flex";
+        }
+
+        function closeGame() {
+            document.body.style.overflow = "";
+            document.documentElement.style.overflow = "";
+            gameModal.style.display = "none";
+            gameIframe.src = "";
+        }
+
+        // ===== 窗户撩开检测 & 跳转 scene7 =====
+        let curtainEverParted = false;
+        const hintWindow = document.getElementById("hintWindow");
+
+        // 检测布帘整体是否被撩开过（粒子平均偏移）
+        function isCurtainParted() {
+            if (!particles.length || !config) return false;
+            const cw = config.clothWidth;
+            const originX = cw * 0.5;
+            let total = 0;
+            for (const p of particles) total += Math.abs(p.pos.x - originX);
+            const avg = total / particles.length;
+            // 严格阈值：平均偏移超过布宽15%
+            return avg > cw * 0.15;
+        }
+
+        // 检测屏幕某点是否被粒子覆盖
+        function isPointCovered(screenX, screenY) {
+            if (!particles.length || !config) return true;
+            const containerRect = document.getElementById("windowContainer").getBoundingClientRect();
+            const scaleX = containerRect.width  / config.clothWidth;
+            const scaleY = containerRect.height / config.clothHeight;
+            const localX = (screenX - containerRect.left) / scaleX - config.offsetX;
+            const localY = (screenY - containerRect.top)  / scaleY - config.offsetY;
+            const radius = config.cellSize * 1.2;
+            for (const p of particles) {
+                const dx = p.pos.x - localX, dy = p.pos.y - localY;
+                if (dx*dx + dy*dy < radius*radius) return true;
+            }
+            return false;
+        }
+
+        // 布帘点击：判断点击位置是否在 next UI 上且该处未被粒子遮挡
+        function onClothClick(e) {
+            const rect = hintWindow.getBoundingClientRect();
+            const pad = 20;
+            if (e.clientX >= rect.left - pad && e.clientX <= rect.right  + pad &&
+                e.clientY >= rect.top  - pad && e.clientY <= rect.bottom + pad) {
+                if (!isPointCovered(e.clientX, e.clientY)) {
+                    gsap.timeline()
+                        .to(flashOverlay, { opacity: 1, duration: 0.3 }, 0)
+                        .call(() => { window.location.href = "./scene7.html"; });
+                }
+            }
+        }
+
+        // 挂在 windowContainer 上（不会被 innerHTML 清空）
+        document.getElementById("windowContainer").addEventListener("click", onClothClick);
+
+        gameboyWrapper.addEventListener("click", openGame);
+        gameModalBg.addEventListener("click", closeGame);
+        gameCloseBtn.addEventListener("click", closeGame);
+        document.getElementById("gameModal").addEventListener("wheel", function(e) {
+            e.stopPropagation();
+        }, { passive: false });
+        document.addEventListener("keydown", (e) => {
+            if (e.key === "Escape") closeGame();
+        });
+
+        function hideGameboyHint() {
+            if (hintGameboy) {
+                hintGameboy.style.opacity = "0";
+                setTimeout(() => { hintGameboy.style.display = "none"; }, 1000);
+            }
+        }
+
+        // ===== 场景切换函数 =====
+        function flashToScene(cupType) {
+            document.getElementById("waterCup").style.display = "none";
+            document.getElementById("orangeCup").style.display = "none";
+            const video = document.createElement("video");
+            video.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:50;";
+            video.muted = true;
+            video.playsInline = true;
+            document.body.appendChild(video);
+            video.src = cupType === "water" ? "./videos/water.mp4" : "./videos/orange.mp4";
+            video.play().catch(err => console.error("视频播放失败:", err));
+            video.onended = () => {
+                video.remove();
+                if (cupType === "water") {
+                    if (!window.waterImg) {
+                        window.waterImg = document.createElement("img");
+                        window.waterImg.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:1;";
+                        document.body.appendChild(window.waterImg);
+                    }
+                    window.waterImg.src = "./images/scene2_water_inside.png";
+                    window.waterImg.style.display = "block";
+                    if (window.orangeImg) window.orangeImg.style.display = "none";
+                    currentScene = "water";
+                    document.getElementById("returnBedroomBtn").style.display = "block";
+                    showOr(currentScene);
+                    initInnerCups("water");
+                } else {
+                    if (!window.orangeImg) {
+                        window.orangeImg = document.createElement("img");
+                        window.orangeImg.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:1;";
+                        document.body.appendChild(window.orangeImg);
+                    }
+                    window.orangeImg.src = "./images/scene2_orange_inside.png";
+                    window.orangeImg.style.display = "block";
+                    if (window.waterImg) window.waterImg.style.display = "none";
+                    currentScene = "orange";
+                    document.getElementById("returnBedroomBtn").style.display = "block";
+                    showOr(currentScene);
+                    initInnerCups("orange");
+                }
+            };
+        }
+
+        // ===== 返回卧室按钮 =====
+        document.getElementById("returnBedroomBtn").addEventListener("click", () => {
+            gsap.timeline()
+                .to(flashOverlay, { opacity: 1, duration: 0.3 }, 0)
+                .call(() => {
+                    if (window.waterImg) window.waterImg.style.display = "none";
+                    if (window.orangeImg) window.orangeImg.style.display = "none";
+                    if (window.waterTopImg) window.waterTopImg.style.display = "none";
+                    if (window.orangeTopImg) window.orangeTopImg.style.display = "none";
+                    document.getElementById("waterCup").style.display = "none";
+                    document.getElementById("orangeCup").style.display = "none";
+                    document.getElementById("returnBedroomBtn").style.display = "none";
+                    document.getElementById("hintOr").style.display = "none";
+                    bedroomBg.style.display = "block";
+                    if (animationFrame) { window.cancelAnimationFrame(animationFrame); animationFrame = 0; }
+                    const clothContainer = document.getElementById("clothContainer");
+                    clothContainer.innerHTML = "";
+                    document.getElementById("windowContainer").style.display = "block";
+                    lastTime = 0;
+                    if (input) { input.destroy(); input = null; }
+                    buildScene();
+                    animationFrame = window.requestAnimationFrame(tick);
+                    const oldWater = document.getElementById("waterCup");
+                    const oldOrange = document.getElementById("orangeCup");
+                    oldWater.replaceWith(oldWater.cloneNode(true));
+                    oldOrange.replaceWith(oldOrange.cloneNode(true));
+                    document.getElementById("waterCup").style.display = "block";
+                    document.getElementById("orangeCup").style.display = "block";
+                    const hintCloth = document.getElementById("hintCloth");
+                    const hintCup = document.getElementById("hintCup");
+                    if (hintCloth) { hintCloth.style.display = "block"; hintCloth.style.opacity = "1"; }
+                    if (hintCup) { hintCup.style.display = "block"; hintCup.style.opacity = "1"; }
+                    gameboyWrapper.style.display = "block";
+                    if (hintGameboy) { hintGameboy.style.display = "block"; hintGameboy.style.opacity = "1"; }
+                    currentScene = "bedroom";
+                    initCups();
+                })
+                .to(flashOverlay, { opacity: 0, duration: 0.3 });
+        });
+
+        function showOr(scene) {
+            const el = document.getElementById("hintOr");
+            el.style.display = "block";
+            el.style.transform = "none";
+            if (scene === "water") {
+                el.style.left = "1290px"; el.style.right = "auto";
+                el.style.top = "45%"; el.style.transform = "translateY(-50%)";
+            } else {
+                el.style.left = "auto"; el.style.right = "1190px";
+                el.style.top = "50%"; el.style.transform = "translateY(-50%)";
+            }
+        }
+
+        function hideHints() {
+            const hintCloth = document.getElementById("hintCloth");
+            const hintCup = document.getElementById("hintCup");
+            if (hintCloth) hintCloth.style.display = "none";
+            if (hintCup) hintCup.style.display = "none";
+            document.getElementById("gameboyWrapper").style.display = "none";
+            document.getElementById("hintGameboy").style.display = "none";
+        }
+
+        // ===== 初始化水杯点击区域 =====
+        function initCups() {
+            const waterCup = document.getElementById("waterCup");
+            const orangeCup = document.getElementById("orangeCup");
+            waterCup.style.left = "132px"; waterCup.style.top = "650px";
+            waterCup.style.width = "120px"; waterCup.style.height = "200px";
+            waterCup.addEventListener("click", () => {
+                gsap.timeline()
+                    .to(flashOverlay, { opacity: 1, duration: 0.3 }, 0)
+                    .call(() => {
+                        bedroomBg.style.display = "none";
+                        document.getElementById("windowContainer").style.display = "none";
+                        if (!window.waterImg) {
+                            window.waterImg = document.createElement("img");
+                            window.waterImg.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:1;";
+                            document.body.appendChild(window.waterImg);
+                        }
+                        window.waterImg.src = "./images/scene2_water_inside.png";
+                        window.waterImg.style.display = "block";
+                        currentScene = "water";
+                        document.getElementById("returnBedroomBtn").style.display = "block";
+                        showOr(currentScene);
+                        hideHints();
+                        hideGameboyHint();
+                        initInnerCups("water");
+                    })
+                    .to(flashOverlay, { opacity: 0, duration: 0.3 });
+            });
+            orangeCup.style.left = "294px"; orangeCup.style.top = "640px";
+            orangeCup.style.width = "114px"; orangeCup.style.height = "200px";
+            orangeCup.addEventListener("click", () => {
+                gsap.timeline()
+                    .to(flashOverlay, { opacity: 1, duration: 0.3 }, 0)
+                    .call(() => {
+                        bedroomBg.style.display = "none";
+                        document.getElementById("windowContainer").style.display = "none";
+                        if (!window.orangeImg) {
+                            window.orangeImg = document.createElement("img");
+                            window.orangeImg.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:1;";
+                            document.body.appendChild(window.orangeImg);
+                        }
+                        window.orangeImg.src = "./images/scene2_orange_inside.png";
+                        window.orangeImg.style.display = "block";
+                        currentScene = "orange";
+                        document.getElementById("returnBedroomBtn").style.display = "block";
+                        showOr(currentScene);
+                        hideHints();
+                        hideGameboyHint();
+                        initInnerCups("orange");
+                    })
+                    .to(flashOverlay, { opacity: 0, duration: 0.3 });
+            });
+        }
+
+        // ===== 初始化内部场景的杯子 =====
+        function initInnerCups(currentScene) {
+            const oldWaterCup = document.getElementById("waterCup");
+            const oldOrangeCup = document.getElementById("orangeCup");
+            oldWaterCup.replaceWith(oldWaterCup.cloneNode(true));
+            oldOrangeCup.replaceWith(oldOrangeCup.cloneNode(true));
+            const waterCup = document.getElementById("waterCup");
+            const orangeCup = document.getElementById("orangeCup");
+            if (currentScene === "water") {
+                waterCup.style.left = "560px"; waterCup.style.top = "180px";
+                waterCup.style.width = "400px"; waterCup.style.height = "610px";
+                waterCup.style.display = "block";
+                waterCup.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    localStorage.setItem("bubbleScene", "water_top");
+                    window.location.href = "./scene3.html";
+                });
+                orangeCup.style.left = "1578px"; orangeCup.style.top = "230px";
+                orangeCup.style.width = "260px"; orangeCup.style.height = "520px";
+                orangeCup.style.display = "block";
+                orangeCup.addEventListener("click", (e) => { e.stopPropagation(); flashToScene("orange"); });
+            } else if (currentScene === "orange") {
+                orangeCup.style.left = "765px"; orangeCup.style.top = "160px";
+                orangeCup.style.width = "412px"; orangeCup.style.height = "600px";
+                orangeCup.style.display = "block";
+                orangeCup.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    localStorage.setItem("bubbleScene", "orange_top");
+                    window.location.href = "./scene3.html";
+                });
+                waterCup.style.left = "-45px"; waterCup.style.top = "270px";
+                waterCup.style.width = "180px"; waterCup.style.height = "540px";
+                waterCup.style.display = "block";
+                waterCup.addEventListener("click", (e) => { e.stopPropagation(); flashToScene("water"); });
+            }
+        }
+
+        function start() {
+            buildScene();
+            initCups();
+            animationFrame = window.requestAnimationFrame(tick);
+            // 所有 hint 立即显示，不消失
+        }
+
+        window.addEventListener("resize", () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => { lastTime = 0; buildScene(); }, 80);
+        });
+
+        if ("ResizeObserver" in window) {
+            const observer = new ResizeObserver(() => {
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(() => { lastTime = 0; buildScene(); }, 80);
+            });
+            observer.observe(container);
+        }
+
+        if (document.fonts && document.fonts.ready) {
+            document.fonts.ready.then(() => {
+                start();
+                const params = new URLSearchParams(window.location.search);
+                const scene = params.get("scene");
+                if (scene === "water_inside") {
+                    bedroomBg.style.display = "none";
+                    document.getElementById("windowContainer").style.display = "none";
+                    if (!window.waterImg) {
+                        window.waterImg = document.createElement("img");
+                        window.waterImg.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:1;";
+                        document.body.appendChild(window.waterImg);
+                    }
+                    window.waterImg.src = "./images/scene2_water_inside.png";
+                    window.waterImg.style.display = "block";
+                    currentScene = "water";
+                    document.getElementById("returnBedroomBtn").style.display = "block";
+                    showOr(currentScene); hideHints(); initInnerCups("water");
+                } else if (scene === "orange_inside") {
+                    bedroomBg.style.display = "none";
+                    document.getElementById("windowContainer").style.display = "none";
+                    if (!window.orangeImg) {
+                        window.orangeImg = document.createElement("img");
+                        window.orangeImg.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:1;";
+                        document.body.appendChild(window.orangeImg);
+                    }
+                    window.orangeImg.src = "./images/scene2_orange_inside.png";
+                    window.orangeImg.style.display = "block";
+                    currentScene = "orange";
+                    document.getElementById("returnBedroomBtn").style.display = "block";
+                    showOr(currentScene); hideHints(); initInnerCups("orange");
+                }
+            });
+        } else {
+            start();
+            const params = new URLSearchParams(window.location.search);
+            const scene = params.get("scene");
+            if (scene === "water_inside") {
+                bedroomBg.style.display = "none";
+                document.getElementById("windowContainer").style.display = "none";
+                if (!window.waterImg) {
+                    window.waterImg = document.createElement("img");
+                    window.waterImg.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:1;";
+                    document.body.appendChild(window.waterImg);
+                }
+                window.waterImg.src = "./images/scene2_water_inside.png";
+                window.waterImg.style.display = "block";
+                currentScene = "water";
+                document.getElementById("returnBedroomBtn").style.display = "block";
+                showOr(currentScene); hideHints(); initInnerCups("water");
+            } else if (scene === "orange_inside") {
+                bedroomBg.style.display = "none";
+                document.getElementById("windowContainer").style.display = "none";
+                if (!window.orangeImg) {
+                    window.orangeImg = document.createElement("img");
+                    window.orangeImg.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:1;";
+                    document.body.appendChild(window.orangeImg);
+                }
+                window.orangeImg.src = "./images/scene2_orange_inside.png";
+                window.orangeImg.style.display = "block";
+                currentScene = "orange";
+                document.getElementById("returnBedroomBtn").style.display = "block";
+                showOr(currentScene); hideHints(); initInnerCups("orange");
+            }
+        }
+    </script>
+</body>
+</html>

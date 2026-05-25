@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scene 3 - 泡泡交互</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { width: 100%; height: 100%; overflow: hidden; }
+        #bgImage {
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            object-fit: cover; z-index: 0;
+        }
+        #canvasContainer {
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%; z-index: 2;
+        }
+        #returnBtn {
+            position: fixed; top: 30px; left: 30px;
+            padding: 10px 20px;
+            background: rgba(255,255,255,0.3);
+            color: white; border: 2px solid white;
+            border-radius: 8px; cursor: pointer;
+            font-size: 14px; z-index: 100; transition: all 0.3s;
+        }
+        #returnBtn:hover { background: rgba(255,255,255,0.5); }
+    </style>
+</head>
+<body>
+    <img id="bgImage" src="" alt="background">
+    <div id="canvasContainer"></div>
+    <button id="returnBtn">返回</button>
+
+    <script>
+        const { Engine, World, Bodies, Body } = Matter;
+
+        let engine, world;
+        let bubbles = [];
+        let p5Instance = null;
+        let currentScene = "water_top";
+
+        let straw = {
+            x: 0, y: 0,
+            angle: -Math.PI / 4,
+            length: 420,
+            width: 60,
+            dragging: false,
+            offsetX: 0, offsetY: 0,
+            tipX: 0, tipY: 0
+        };
+
+        let pressing = false;
+        let pressTimer = 0;
+        let spawnInterval = 0;
+        let spawnCount = 0;
+        let cupCircle = { x: 0, y: 0, r: 790 };
+        let burstParticles = [];
+        let airParticles = [];
+
+        function initScene(sceneType) {
+            currentScene = sceneType;
+            document.getElementById("bgImage").src =
+                sceneType === "water_top" ? "./images/water_top.png" : "./images/orange_top.png";
+
+            if (p5Instance) p5Instance.remove();
+
+            p5Instance = new p5((p) => {
+                let strawImg = null;
+                let orangeImg = null;
+
+                p.setup = function() {
+                    let container = document.getElementById("canvasContainer");
+                    let w = container.clientWidth;
+                    let h = container.clientHeight;
+                    let canvas = p.createCanvas(w, h);
+                    canvas.parent("canvasContainer");
+                    p.colorMode(p.RGB);
+
+                    strawImg = p.loadImage("./images/吸管1.png");
+                    orangeImg = p.loadImage("./images/orange.png");
+
+                    engine = Engine.create();
+                    engine.gravity.y = 0;
+                    engine.gravity.x = 0;
+                    world = engine.world;
+
+                    cupCircle.x = w / 2 + 30;
+                    cupCircle.y = h / 2 - 50;
+
+                    let wallOpts = { isStatic: true, restitution: 0.5, friction: 0 };
+                    for (let i = 0; i < 32; i++) {
+                        let a1 = (p.TWO_PI * i) / 32;
+                        let a2 = (p.TWO_PI * (i + 1)) / 32;
+                        let x1 = cupCircle.x + p.cos(a1) * cupCircle.r;
+                        let y1 = cupCircle.y + p.sin(a1) * cupCircle.r;
+                        let x2 = cupCircle.x + p.cos(a2) * cupCircle.r;
+                        let y2 = cupCircle.y + p.sin(a2) * cupCircle.r;
+                        let midX = (x1 + x2) / 2, midY = (y1 + y2) / 2;
+                        let d = p.sqrt((x2-x1)**2 + (y2-y1)**2);
+                        let wall = Bodies.rectangle(midX, midY, d, 20, wallOpts);
+                        Matter.Body.setAngle(wall, p.atan2(y2-y1, x2-x1));
+                        World.add(world, wall);
+                    }
+
+                    straw.x = cupCircle.x;
+                    straw.y = cupCircle.y + 80;
+                };
+
+                p.draw = function() {
+                    p.clear();
+                    Engine.update(engine, 1000 / 60);
+
+                    straw.tipX = straw.x + p.cos(straw.angle) * straw.length * -0.67;
+                    straw.tipY = straw.y + p.sin(straw.angle) * straw.length * -0.1;
+
+                    if (p.mouseIsPressed) {
+                        if (!pressing) {
+                            pressing = true;
+                            pressTimer = 0;
+                            spawnInterval = 0;
+                            spawnCount = 0;
+                        }
+                        pressTimer++;
+                        spawnInterval++;
+
+                        if (pressTimer > 4) {
+                            spawnAirParticles(p);
+                        }
+
+                        if (pressTimer > 8) {
+                            let interval = spawnCount < 3 ? 8 : 15;
+                            if (spawnInterval >= interval) {
+                                spawnInterval = 0;
+                                spawnBubbleGroup();
+                                spawnCount++;
+                            }
+                        }
+                    } else {
+                        pressing = false;
+                        pressTimer = 0;
+                    }
+
+                    for (let b of bubbles) {
+                        if (b.growing && b.r < b.targetR) {
+                            b.r += b.growthSpeed;
+                            if (b.r >= b.targetR) { b.r = b.targetR; b.growing = false; }
+                            let scale = b.r / b.body.circleRadius;
+                            Body.scale(b.body, scale, scale);
+                        }
+                    }
+
+                    for (let b of bubbles) drawBubble(p, b, orangeImg);
+                    updateAndDrawBurst(p);
+                    updateAndDrawAir(p);
+                    drawStraw(p, strawImg);
+                };
+
+                p.mousePressed = function() {
+                    for (let i = bubbles.length - 1; i >= 0; i--) {
+                        let b = bubbles[i];
+                        if (p.dist(p.mouseX, p.mouseY, b.body.position.x, b.body.position.y) < b.r) {
+                            createBurstEffect(p, b.body.position.x, b.body.position.y, b.r);
+                            World.remove(world, b.body);
+                            bubbles.splice(i, 1);
+                            return;
+                        }
+                    }
+                    if (distToStraw(p.mouseX, p.mouseY, strawImg)) {
+                        straw.dragging = true;
+                        straw.offsetX = p.mouseX - straw.x;
+                        straw.offsetY = p.mouseY - straw.y;
+                    }
+                };
+
+                p.mouseDragged = function() {
+                    if (straw.dragging) {
+                        straw.x = p.mouseX - straw.offsetX;
+                        straw.y = p.mouseY - straw.offsetY;
+                    }
+                };
+
+                p.mouseReleased = function() { straw.dragging = false; };
+
+                p.mouseWheel = function(event) {
+                    straw.angle += event.delta * 0.002;
+                    return false;
+                };
+
+                function distToStraw(mx, my, img) {
+                    let dx = mx - straw.x;
+                    let dy = my - straw.y;
+                    let cosA = Math.cos(-straw.angle);
+                    let sinA = Math.sin(-straw.angle);
+                    let rx = dx * cosA - dy * sinA;
+                    let ry = dx * sinA + dy * cosA;
+                    let localX = ry;
+                    let localY = -rx;
+                    let ratio = img && img.width > 0 ? img.width / img.height : 1.4;
+                    let halfLen = straw.length * 0.5 + 15;
+                    let halfWid = straw.length * ratio * 0.5 * 0.5 + 15;
+                    return Math.abs(localX) < halfLen && Math.abs(localY) < halfWid;
+                }
+
+                function spawnAirParticles(p) {
+                    let count = Math.floor(Math.random() * 2) + 1;
+                    for (let i = 0; i < count; i++) {
+                        let offsetR = Math.random() * 10 - 5;
+                        let offsetAngle = Math.random() * Math.PI * 2;
+                        let spawnX = straw.tipX + Math.cos(offsetAngle) * offsetR;
+                        let spawnY = straw.tipY + Math.sin(offsetAngle) * offsetR;
+                        let spread = 1.8;
+                        let vx = (Math.random() - 0.5) * spread;
+                        let vy = (Math.random() - 0.5) * spread - 0.5;
+                        let startR = Math.random() * 4 + 2;
+                        airParticles.push({
+                            x: spawnX, y: spawnY,
+                            vx, vy,
+                            r: startR,
+                            maxR: startR + Math.random() * 8 + 4,
+                            life: 1.0,
+                            decay: Math.random() * 0.02 + 0.015
+                        });
+                    }
+                }
+
+                function updateAndDrawAir(p) {
+                    for (let i = airParticles.length - 1; i >= 0; i--) {
+                        let pt = airParticles[i];
+                        pt.x += pt.vx;
+                        pt.y += pt.vy;
+                        pt.vx *= 0.97;
+                        pt.vy *= 0.97;
+                        pt.life -= pt.decay;
+                        pt.r = pt.r + (pt.maxR - pt.r) * 0.06;
+                        if (pt.life <= 0) { airParticles.splice(i, 1); continue; }
+                        let alpha = pt.life * 180;
+                        p.push();
+                        p.noFill();
+                        p.stroke(255, 255, 255, alpha);
+                        p.strokeWeight(1.2);
+                        p.ellipse(pt.x, pt.y, pt.r * 2, pt.r * 2);
+                        p.noStroke();
+                        p.fill(210, 235, 255, alpha * 0.25);
+                        p.ellipse(pt.x, pt.y, pt.r * 2, pt.r * 2);
+                        if (pt.r > 4) {
+                            p.fill(255, 255, 255, alpha * 0.5);
+                            p.ellipse(pt.x - pt.r * 0.25, pt.y - pt.r * 0.25, pt.r * 0.35, pt.r * 0.25);
+                        }
+                        p.pop();
+                    }
+                }
+
+                function drawBubble(p, b, orangeImg) {
+                    let pos = b.body.position;
+                    let r = b.r;
+                    let isOrange = currentScene === "orange_top";
+
+                    p.push();
+                    p.translate(pos.x, pos.y);
+
+                    // 大泡泡 + orange场景 → 橙子切面图片填充
+                    if (r > 50 && isOrange && orangeImg && orangeImg.width > 0) {
+                        let diameter = r * 2;
+                        let ctx = p.drawingContext;
+                        ctx.save();
+                        ctx.beginPath();
+                        ctx.arc(0, 0, r, 0, Math.PI * 2);
+                        ctx.closePath();
+                        ctx.clip();
+                        ctx.globalCompositeOperation = "screen";
+                        p.imageMode(p.CENTER);
+                        p.image(orangeImg, 0, 0, diameter * 1.68, diameter * 1.1);
+                        ctx.globalCompositeOperation = "source-over";
+                        ctx.restore();
+                        // 高光，无边框
+                        p.noStroke();
+                        p.fill(255, 255, 255, 55);
+                        p.ellipse(-r * 0.28, -r * 0.32, r * 0.42, r * 0.28);
+
+                    } else {
+                        // 小/中泡泡：橙汁场景用橙色，水场景用蓝色
+                        if (isOrange) {
+                            p.noStroke();
+                            p.fill(255, 160, 50, 65);
+                            p.ellipse(0, 0, r * 2, r * 2);
+
+                            p.fill(255, 180, 80, 20);
+                            p.ellipse(0, 0, r * 1.6, r * 1.6);
+
+                            p.noFill();
+                            p.stroke(255, 200, 100, 250);
+                            p.strokeWeight(r > 20 ? 2 : 1.2);
+                            p.ellipse(0, 0, r * 2, r * 2);
+
+                            p.stroke(255, 150, 50, 110);
+                            p.strokeWeight(r > 20 ? 2.5 : 1.5);
+                            p.ellipse(0, 0, r * 2 + 1, r * 2 + 1);
+
+                            if (r > 15) {
+                                p.noStroke();
+                                p.fill(255, 240, 200, 100);
+                                p.ellipse(-r * 0.28, -r * 0.32, r * 0.45, r * 0.32);
+                                p.fill(255, 220, 150, 80);
+                                p.ellipse(r * 0.18, r * 0.22, r * 0.18, r * 0.13);
+                            }
+                        } else {
+                            p.noStroke();
+                            p.fill(210, 230, 255, 65);
+                            p.ellipse(0, 0, r * 2, r * 2);
+
+                            p.fill(220, 240, 255, 20);
+                            p.ellipse(0, 0, r * 1.6, r * 1.6);
+
+                            p.noFill();
+                            p.stroke(255, 255, 255, 250);
+                            p.strokeWeight(r > 20 ? 2 : 1.2);
+                            p.ellipse(0, 0, r * 2, r * 2);
+
+                            p.stroke(180, 210, 255, 110);
+                            p.strokeWeight(r > 20 ? 2.5 : 1.5);
+                            p.ellipse(0, 0, r * 2 + 1, r * 2 + 1);
+
+                            if (r > 15) {
+                                p.noStroke();
+                                p.fill(255, 255, 255, 100);
+                                p.ellipse(-r * 0.28, -r * 0.32, r * 0.45, r * 0.32);
+                                p.fill(255, 255, 255, 80);
+                                p.ellipse(r * 0.18, r * 0.22, r * 0.18, r * 0.13);
+                            }
+                        }
+                    }
+                    p.pop();
+                }
+
+                function drawStraw(p, strawImg) {
+                    p.push();
+                    p.translate(straw.x, straw.y);
+                    p.rotate(straw.angle);
+                    p.imageMode(p.CENTER);
+
+                    if (strawImg && strawImg.width > 0) {
+                        let drawH = straw.length;
+                        let drawW = drawH * (strawImg.width / strawImg.height);
+                        p.rotate(p.HALF_PI);
+                        p.drawingContext.globalCompositeOperation = "screen";
+                        p.image(strawImg, 0, 0, drawW, drawH);
+                        p.drawingContext.globalCompositeOperation = "source-over";
+                    } else {
+                        p.rectMode(p.CENTER);
+                        p.noStroke();
+                        p.fill(255, 200, 120);
+                        p.rect(0, 0, straw.length, straw.width, 6);
+                    }
+                    p.pop();
+                }
+            });
+        }
+
+        function spawnBubbleGroup() {
+            let tx = straw.tipX, ty = straw.tipY;
+            let roll = Math.random();
+            let mainR;
+            if (roll < 0.25)      mainR = Math.random() * 80 + 65;
+            else if (roll < 0.65) mainR = Math.random() * 30 + 30;
+            else                  mainR = Math.random() * 20 + 8;
+
+            spawnOneBubble(tx, ty, mainR, tx, ty);
+
+            if (mainR > 50) {
+                for (let i = 0; i < Math.floor(Math.random() * 6 + 6); i++) {
+                    let smallR = Math.random() * 15 + 3;
+                    let angle = Math.random() * Math.PI * 2;
+                    let dist = Math.random() * mainR * 1.5 + mainR * 0.7;
+                    spawnOneBubble(tx + Math.cos(angle)*dist, ty + Math.sin(angle)*dist, smallR, tx, ty);
+                }
+            } else if (mainR > 28) {
+                for (let i = 0; i < Math.floor(Math.random() * 3 + 3); i++) {
+                    let smallR = Math.random() * 11 + 4;
+                    let angle = Math.random() * Math.PI * 2;
+                    let dist = Math.random() * mainR * 1.2 + mainR * 0.6;
+                    spawnOneBubble(tx + Math.cos(angle)*dist, ty + Math.sin(angle)*dist, smallR, tx, ty);
+                }
+            }
+        }
+
+        function spawnOneBubble(x, y, targetR, originX, originY) {
+            let dx = x - cupCircle.x, dy = y - cupCircle.y;
+            let dist = Math.sqrt(dx*dx + dy*dy);
+            if (dist + targetR > cupCircle.r) {
+                let ratio = (cupCircle.r - targetR) / (dist || 1);
+                x = cupCircle.x + dx * ratio;
+                y = cupCircle.y + dy * ratio;
+            }
+            if (bubbles.length > 700) {
+                let oldest = bubbles.shift();
+                World.remove(world, oldest.body);
+            }
+            let body = Bodies.circle(x, y, 1, {
+                restitution: 0.5, friction: 0.01, frictionAir: 0.015, density: 0.001, label: "bubble"
+            });
+            let growthSpeed = targetR > 50 ? ((targetR-50)/60)*1.3+2.5
+                            : targetR > 28 ? ((targetR-28)/22)*0.9+0.9
+                            : ((targetR-8)/20)*0.45+0.25;
+            let vx = 0, vy = 0;
+            if (originX !== null) {
+                let ddx = x - originX, ddy = y - originY;
+                let d = Math.sqrt(ddx*ddx + ddy*ddy);
+                if (d > 0) {
+                    let speed = ((targetR-8)/102)*2 + 2;
+                    vx = ddx/d*speed; vy = ddy/d*speed;
+                }
+            }
+            Body.setVelocity(body, { x: vx, y: vy });
+            World.add(world, body);
+            bubbles.push({ body, r: 1, targetR, growthSpeed, born: Date.now(), growing: true });
+        }
+
+        function createBurstEffect(p, x, y, radius) {
+            let n = Math.floor(((radius-8)/102)*14 + 6);
+            for (let i = 0; i < n; i++) {
+                let angle = Math.PI*2*i/n + (Math.random()-0.5)*0.6;
+                let speed = Math.random()*5 + 3;
+                burstParticles.push({
+                    x, y, vx: Math.cos(angle)*speed, vy: Math.sin(angle)*speed,
+                    life: 0.8, maxLife: 0.8, size: Math.random()*4+2
+                });
+            }
+        }
+
+        function updateAndDrawBurst(p) {
+            for (let i = burstParticles.length-1; i >= 0; i--) {
+                let pt = burstParticles[i];
+                pt.x += pt.vx; pt.y += pt.vy; pt.vy += 0.3; pt.life -= 0.02;
+                if (pt.life <= 0) { burstParticles.splice(i, 1); continue; }
+                p.push();
+                p.fill(200, 220, 255, (pt.life/pt.maxLife)*150);
+                p.noStroke();
+                p.ellipse(pt.x, pt.y, pt.size);
+                p.pop();
+            }
+        }
+
+        document.getElementById("returnBtn").addEventListener("click", () => {
+            if (p5Instance) p5Instance.remove();
+            bubbles = []; burstParticles = []; airParticles = [];
+            window.location.href = currentScene === "water_top"
+                ? "./scene2.html?scene=water_inside"
+                : "./scene2.html?scene=orange_inside";
+        });
+
+        window.addEventListener("load", () => {
+            initScene(localStorage.getItem("bubbleScene") || "water_top");
+        });
+
+        window.setBubbleScene = function(sceneType) {
+            localStorage.setItem("bubbleScene", sceneType);
+            initScene(sceneType);
+        };
+    </script>
+</body>
+</html>

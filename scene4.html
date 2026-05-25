@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scene 4 - 敲门</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { overflow: hidden; background: #000; }
+
+        /* ===== 阶段1: 门远 ===== */
+        #stage-far {
+            position: fixed; inset: 0;
+            display: flex; justify-content: center; align-items: center;
+            cursor: pointer; z-index: 10;
+        }
+        #stage-far img {
+            width: 100%; height: 100%; object-fit: cover;
+        }
+        #stage-far .click-zone {
+            position: absolute;
+            top: 15%; left: 25%; width: 50%; height: 70%;
+            cursor: pointer;
+        }
+        #stage-far .hint {
+            position: absolute; bottom: 8%; left: 50%; transform: translateX(-50%);
+            color: rgba(255,255,255,0.5); font: italic 16px Georgia, serif;
+            letter-spacing: 2px; pointer-events: none;
+            animation: pulse 3s ease-in-out infinite;
+        }
+
+        /* ===== 阶段2: 视频 ===== */
+        #stage-video {
+            position: fixed; inset: 0;
+            display: none; z-index: 20;
+            background: #000;
+        }
+        #stage-video video {
+            width: 100%; height: 100%; object-fit: cover;
+        }
+
+        /* ===== 阶段3: 门近 + p5 canvas ===== */
+        #stage-close {
+            position: fixed; inset: 0;
+            display: none; z-index: 30;
+        }
+        #stage-close .bg {
+            position: absolute; inset: 0;
+            width: 100%; height: 100%; object-fit: cover;
+        }
+        #p5-canvas {
+            position: absolute; inset: 0;
+            z-index: 31;
+        }
+        #stage-close .hint {
+            position: fixed; bottom: 12%; left: 50%; transform: translateX(-50%);
+            padding: 14px 40px;
+            background: rgba(161, 142, 114, 0.6);
+            border: 1.5px solid rgba(255, 255, 255, 0.25);
+            border-radius: 999px;
+            color: rgba(255, 255, 255, 0.9);
+            font: 22px/1.4 'Georgia', '宋体', serif;
+            letter-spacing: 4px;
+            pointer-events: none; z-index: 32;
+            backdrop-filter: blur(4px);
+            transition: opacity 1.5s ease-out;
+        }
+
+        @keyframes pulse {
+            0%,100% { opacity: 0.45; }
+            50% { opacity: 0.15; }
+        }
+
+        /* ===== 文案弹出 ===== */
+        #caption-overlay {
+            position: fixed; inset: 0;
+            display: none;
+            z-index: 50;
+            pointer-events: none;
+            animation: captionIn 0.8s ease-out;
+        }
+        #caption-overlay.show { display: flex; }
+        #caption-box {
+            position: absolute;
+            padding: 10px 24px;
+            text-align: center;
+            background: #FAF0C8;
+            border: 1px solid #1B2A4A;
+            border-radius: 0;
+        }
+        #caption-box.pos-tl { top: 6%; left: 5%; }
+        #caption-box.pos-tr { top: 6%; right: 5%; }
+        #caption-box.pos-bl { bottom: 10%; left: 5%; }
+        #caption-box.pos-br { bottom: 10%; right: 5%; }
+        #caption-box .cn {
+            color: #1B2A4A;
+            font: 500 15px/1.5 'Georgia', '宋体', serif;
+            letter-spacing: 3px;
+        }
+        #caption-box .en {
+            color: #1B2A4A;
+            font: italic 11px/1.3 'Georgia', serif;
+            letter-spacing: 1.5px;
+            margin-top: 2px;
+            opacity: 0.6;
+        }
+        @keyframes captionIn {
+            from { opacity: 0; transform: translateY(16px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes captionOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+
+        /* ===== 阶段4: 推门视频 ===== */
+        #stage-open {
+            position: fixed; inset: 0;
+            display: none; z-index: 60;
+            background: #000;
+        }
+        #stage-open video {
+            width: 100%; height: 100%; object-fit: cover;
+        }
+
+        /* ===== 阶段5: 下一场景占位 ===== */
+        #stage-next {
+            position: fixed; inset: 0;
+            display: none; z-index: 70;
+            background: #1a1a1a;
+            justify-content: center; align-items: center;
+            color: rgba(255,255,255,0.4);
+            font: 24px Georgia, serif;
+            letter-spacing: 4px;
+        }
+        #stage-next.show { display: flex; }
+    </style>
+</head>
+<body>
+
+<!-- ===== 阶段1: 门远 ===== -->
+<div id="stage-far">
+    <img src="images/门远.jpg" alt="门远">
+    <div class="click-zone" id="far-click"></div>
+    <div class="hint">点击门进入</div>
+</div>
+
+<!-- ===== 阶段2: 跑向门视频 ===== -->
+<div id="stage-video">
+    <video id="run-video" src="videos/run to door.mp4" preload="auto" playsinline muted></video>
+</div>
+
+<!-- ===== 阶段3: 门近 + 交互 ===== -->
+<div id="stage-close">
+    <img class="bg" src="images/门近.jpg" alt="门近">
+    <div id="p5-canvas"></div>
+    <div class="hint" id="close-hint">敲敲门看看</div>
+</div>
+
+<!-- ===== 文案弹出层 ===== -->
+<div id="caption-overlay">
+    <div id="caption-box"></div>
+</div>
+
+<!-- ===== 阶段4: 推门视频 ===== -->
+<div id="stage-open">
+    <video id="open-video" preload="auto" playsinline muted></video>
+</div>
+
+<!-- ===== 阶段5: 下一场景（占位） ===== -->
+<div id="stage-next">
+    Scene 5 — 待接入
+</div>
+
+<script>
+// ===== 阶段控制 =====
+const stageFar = document.getElementById('stage-far');
+const stageVideo = document.getElementById('stage-video');
+const stageClose = document.getElementById('stage-close');
+const runVideo = document.getElementById('run-video');
+const farClick = document.getElementById('far-click');
+
+farClick.addEventListener('click', function() {
+    runVideo.play().then(() => {
+        stageFar.style.display = 'none';
+        stageVideo.style.display = 'block';
+    });
+});
+
+runVideo.addEventListener('ended', function() {
+    stageVideo.style.display = 'none';
+    stageClose.style.display = 'block';
+    startP5();
+    setTimeout(() => {
+        let hint = document.getElementById('close-hint');
+        if (hint) {
+            hint.style.opacity = '0';
+            setTimeout(() => { hint.style.display = 'none'; }, 1500);
+        }
+    }, 6000);
+});
+
+function startP5() {
+    new p5(function(p) {
+
+        let flowers = [];
+        let lastClickTime = 0;
+        let lastClickX = 0;
+        let lastClickY = 0;
+
+        function isOnDoor(mx, my) {
+            let px = mx / p.width;
+            let py = my / p.height;
+            return px > 0.2 && px < 0.78 && py > 0.03 && py < 1.0;
+        }
+
+        const palettes = [
+            { main: [225, 220, 210], accent: [255, 200, 150] },
+            { main: [180, 210, 255], accent: [120, 160, 255] },
+            { main: [255, 180, 200], accent: [255, 120, 160] },
+            { main: [200, 255, 200], accent: [120, 230, 150] },
+            { main: [255, 220, 160], accent: [255, 180, 80] },
+            { main: [220, 180, 255], accent: [180, 120, 255] },
+            { main: [255, 200, 180], accent: [255, 150, 120] },
+            { main: [180, 240, 240], accent: [100, 220, 220] },
+        ];
+
+        const LAYER_TYPES = 8;
+
+        class Layer {
+            constructor(targetR, type, count, pal, spinDir) {
+                this.targetR = targetR;
+                this.currentR = 0;
+                this.expandSpeed = p.random(1.2, 3.0);
+                this.type = type;
+                this.count = count;
+                this.rotation = 0;
+                this.spinSpeed = p.random(0.003, 0.015) * spinDir * p.random([1, -1]);
+                this.pal = pal;
+                this.thickness = p.random(0.4, 1.2);
+            }
+
+            update(isFading) {
+                if (this.currentR < this.targetR) {
+                    this.currentR += this.expandSpeed;
+                    if (this.currentR > this.targetR) this.currentR = this.targetR;
+                }
+                if (isFading) {
+                    this.currentR += this.expandSpeed * 0.9;
+                    this.targetR += this.expandSpeed * 0.9;
+                }
+                this.rotation += this.spinSpeed;
+            }
+
+            display(alpha) {
+                let r = this.currentR;
+                if (r < 1) return;
+                let c = this.pal.main;
+                let ac = this.pal.accent;
+                let a = alpha;
+                p.push();
+                p.rotate(this.rotation);
+                switch (this.type) {
+                    case 0: this.drawRays(r, c, a); break;
+                    case 1: this.drawDots(r, c, a); break;
+                    case 2: this.drawGear(r, c, a); break;
+                    case 3: this.drawUPetals(r, c, a); break;
+                    case 4: this.drawLace(r, c, ac, a); break;
+                    case 5: this.drawDashedRing(r, c, a); break;
+                    case 6: this.drawStar(r, c, ac, a); break;
+                    case 7: this.drawCrossLines(r, c, a); break;
+                }
+                p.pop();
+            }
+
+            drawRays(r, c, a) {
+                p.stroke(c[0],c[1],c[2],a); p.strokeWeight(this.thickness); p.noFill();
+                let inner = r * 0.3;
+                for (let i = 0; i < this.count; i++) {
+                    let ang = (i/this.count)*p.TWO_PI;
+                    p.line(p.cos(ang)*inner,p.sin(ang)*inner,p.cos(ang)*r,p.sin(ang)*r);
+                }
+            }
+            drawDots(r, c, a) {
+                p.noStroke(); p.fill(c[0],c[1],c[2],a);
+                for (let i = 0; i < this.count; i++) {
+                    let ang = (i/this.count)*p.TWO_PI;
+                    p.circle(p.cos(ang)*r,p.sin(ang)*r,this.thickness*1.8);
+                }
+            }
+            drawGear(r, c, a) {
+                p.noFill(); p.stroke(c[0],c[1],c[2],a); p.strokeWeight(this.thickness);
+                p.beginShape();
+                for (let i = 0; i <= this.count*2; i++) {
+                    let ang = (i/(this.count*2))*p.TWO_PI;
+                    let rr = (i%2===0)?r:r*0.88;
+                    p.vertex(p.cos(ang)*rr,p.sin(ang)*rr);
+                }
+                p.endShape(p.CLOSE);
+            }
+            drawUPetals(r, c, a) {
+                p.noFill(); p.stroke(c[0],c[1],c[2],a); p.strokeWeight(this.thickness);
+                let ps = r*0.12;
+                for (let i = 0; i < this.count; i++) {
+                    let ang = (i/this.count)*p.TWO_PI;
+                    p.push();
+                    p.translate(p.cos(ang)*r,p.sin(ang)*r);
+                    p.rotate(ang+p.HALF_PI);
+                    p.beginShape();
+                    for (let t = -p.PI; t <= 0; t += 0.1) p.vertex(p.cos(t)*ps*0.5,p.sin(t)*ps);
+                    p.endShape();
+                    p.pop();
+                }
+            }
+            drawLace(r, c, ac, a) {
+                p.noFill(); p.stroke(c[0],c[1],c[2],a); p.strokeWeight(this.thickness);
+                for (let i = 0; i < this.count; i++) {
+                    let a1 = (i/this.count)*p.TWO_PI;
+                    let a2 = ((i+1)/this.count)*p.TWO_PI;
+                    let mid = (a1+a2)/2;
+                    p.beginShape();
+                    p.vertex(p.cos(a1)*r,p.sin(a1)*r);
+                    p.quadraticVertex(p.cos(mid)*r*1.13,p.sin(mid)*r*1.13,p.cos(a2)*r,p.sin(a2)*r);
+                    p.endShape();
+                }
+                p.strokeWeight(this.thickness*0.5); p.stroke(ac[0],ac[1],ac[2],a*0.6);
+                for (let i = 0; i < this.count; i++) {
+                    let ang = ((i+0.5)/this.count)*p.TWO_PI;
+                    p.line(p.cos(ang)*r*1.02,p.sin(ang)*r*1.02,p.cos(ang)*r*1.15,p.sin(ang)*r*1.15);
+                }
+            }
+            drawDashedRing(r, c, a) {
+                p.noFill(); p.stroke(c[0],c[1],c[2],a); p.strokeWeight(this.thickness);
+                for (let i = 0; i < this.count; i++) {
+                    let a1 = (i/this.count)*p.TWO_PI;
+                    let a2 = ((i+0.5)/this.count)*p.TWO_PI;
+                    p.arc(0,0,r*2,r*2,a1,a2);
+                }
+            }
+            drawStar(r, c, ac, a) {
+                p.noFill(); p.stroke(c[0],c[1],c[2],a); p.strokeWeight(this.thickness);
+                p.beginShape();
+                for (let i = 0; i <= this.count; i++) {
+                    let ang = (i/this.count)*p.TWO_PI;
+                    let rr = (i%2===0)?r:r*0.65;
+                    p.vertex(p.cos(ang)*rr,p.sin(ang)*rr);
+                }
+                p.endShape(p.CLOSE);
+                p.stroke(ac[0],ac[1],ac[2],a*0.4); p.strokeWeight(this.thickness*0.4);
+                for (let i = 0; i < this.count; i+=2) {
+                    let a1 = (i/this.count)*p.TWO_PI;
+                    let a2 = ((i+2)/this.count)*p.TWO_PI;
+                    p.line(p.cos(a1)*r,p.sin(a1)*r,p.cos(a2)*r,p.sin(a2)*r);
+                }
+            }
+            drawCrossLines(r, c, a) {
+                p.stroke(c[0],c[1],c[2],a); p.strokeWeight(this.thickness*0.6); p.noFill();
+                for (let i = 0; i < this.count; i++) {
+                    let ang = (i/this.count)*p.TWO_PI;
+                    let nextAng = ((i+p.floor(this.count/3))/this.count)*p.TWO_PI;
+                    p.line(p.cos(ang)*r*0.5,p.sin(ang)*r*0.5,p.cos(nextAng)*r,p.sin(nextAng)*r);
+                }
+            }
+        }
+
+        class MandalaFlower {
+            constructor(x, y, evolved) {
+                this.x = x; this.y = y;
+                this.life = 1; this.fading = false;
+                this.fadeDelay = evolved ? p.random(80,140) : p.random(50,90);
+                this.fadeSpeed = evolved ? p.random(0.012,0.02) : p.random(0.025,0.04);
+                this.allExpanded = false; this.done = false; this.evolved = evolved;
+                let pal = p.random(palettes);
+                let layerCount = evolved ? p.floor(p.random(10,15)) : p.floor(p.random(6,9));
+                let maxR = evolved ? p.random(110,170) : p.random(38,65);
+                let spinDir = evolved ? 2.5 : 1;
+                this.layers = [];
+                this.centerR = 0;
+                this.centerTargetR = maxR * 0.05;
+                this.centerSpeed = p.random(1.5,2.5);
+                this.centerPal = pal;
+                let usedTypes = [];
+                for (let i = 0; i < layerCount; i++) {
+                    let t = (i+1)/layerCount;
+                    let r = maxR*(0.1+t*0.9);
+                    let type;
+                    do { type = p.floor(p.random(LAYER_TYPES)); } while (usedTypes.length>0 && type===usedTypes[usedTypes.length-1]);
+                    usedTypes.push(type);
+                    let count = p.floor(p.random(evolved?24:16, evolved?64:40));
+                    this.layers.push(new Layer(r,type,count,pal,spinDir));
+                }
+                if (evolved) {
+                    this.ringLayers = [];
+                    for (let i = 0; i < 4; i++) {
+                        this.ringLayers.push({
+                            targetR: maxR*p.random(0.2,0.95),
+                            currentR: 0, speed: p.random(1.5,3.5), weight: p.random(0.3,0.8),
+                        });
+                    }
+                }
+            }
+            update() {
+                if (this.centerR < this.centerTargetR) {
+                    this.centerR += this.centerSpeed;
+                    if (this.centerR > this.centerTargetR) this.centerR = this.centerTargetR;
+                }
+                if (this.fading) this.centerR += this.centerSpeed*0.7;
+                let allDone = true;
+                for (let layer of this.layers) {
+                    layer.update(this.fading);
+                    if (layer.currentR < layer.targetR) allDone = false;
+                }
+                if (this.evolved && this.ringLayers) {
+                    for (let rl of this.ringLayers) {
+                        if (rl.currentR < rl.targetR) {
+                            rl.currentR += rl.speed;
+                            if (rl.currentR > rl.targetR) rl.currentR = rl.targetR;
+                            else allDone = false;
+                        }
+                        if (this.fading) rl.currentR += rl.speed*0.8;
+                    }
+                }
+                if (allDone && !this.allExpanded) this.allExpanded = true;
+                if (this.allExpanded) { this.fadeDelay--; if (this.fadeDelay <= 0) this.fading = true; }
+                if (this.fading) this.life -= this.fadeSpeed;
+                if (this.life <= 0) this.done = true;
+            }
+            display() {
+                if (this.life <= 0) return;
+                let a = this.life*240;
+                let c = this.centerPal.main;
+                p.push();
+                p.translate(this.x, this.y);
+                if (this.centerR > 0) {
+                    p.noStroke(); p.fill(c[0],c[1],c[2],a);
+                    p.circle(0,0,this.centerR*2);
+                    p.noFill(); p.stroke(c[0],c[1],c[2],a*0.7); p.strokeWeight(1.5);
+                    p.circle(0,0,this.centerR*3.5);
+                }
+                if (this.evolved && this.ringLayers) {
+                    for (let rl of this.ringLayers) {
+                        if (rl.currentR > 1) {
+                            p.noFill(); p.stroke(c[0],c[1],c[2],a*0.3); p.strokeWeight(rl.weight);
+                            p.circle(0,0,rl.currentR*2);
+                        }
+                    }
+                }
+                for (let layer of this.layers) layer.display(a);
+                p.pop();
+            }
+        }
+
+        p.setup = function() {
+            let container = document.getElementById('p5-canvas');
+            let canvas = p.createCanvas(container.clientWidth, container.clientHeight);
+            canvas.parent('p5-canvas');
+            p.smooth();
+        };
+
+        p.draw = function() {
+            p.clear();
+            for (let i = flowers.length-1; i >= 0; i--) {
+                flowers[i].update(); flowers[i].display();
+                if (flowers[i].done) flowers.splice(i,1);
+            }
+        };
+
+        let clickCount = 0;
+        let doorOpened = false;
+        const captions = {
+            8:  { cn: '嘿——我来啦', en: 'Hey — I\'m here!' },
+            20: { cn: '楼梯上好像传来了踢踢踏踏的声音', en: 'Pitter-patter sounds seem to echo from the stairway...' },
+            35: { cn: '脚步声越来越近了——', en: 'The footsteps are getting closer...' },
+        };
+
+        let captionIndex = 0;
+        const cornerPositions = ['pos-tl', 'pos-tr', 'pos-br', 'pos-bl'];
+
+        function showCaption(data) {
+            let overlay = document.getElementById('caption-overlay');
+            let box = document.getElementById('caption-box');
+            box.classList.remove('pos-tl', 'pos-tr', 'pos-bl', 'pos-br');
+            box.classList.add(cornerPositions[captionIndex % 4]);
+            captionIndex++;
+            box.innerHTML = '<div class="cn">' + data.cn + '</div><div class="en">' + data.en + '</div>';
+            overlay.classList.add('show');
+            overlay.style.animation = 'captionIn 0.8s ease-out';
+            setTimeout(() => {
+                overlay.style.animation = 'captionOut 1s ease-in forwards';
+                setTimeout(() => { overlay.classList.remove('show'); overlay.style.animation = ''; }, 1000);
+            }, 3500);
+        }
+
+        function triggerOpenDoor() {
+            doorOpened = true;
+            document.getElementById('caption-overlay').classList.remove('show');
+            let stageOpen = document.getElementById('stage-open');
+            let openVideo = document.getElementById('open-video');
+            openVideo.src = 'videos/女孩推门.mp4';
+            openVideo.addEventListener('canplay', function onReady() {
+                openVideo.removeEventListener('canplay', onReady);
+                document.getElementById('stage-close').style.display = 'none';
+                stageOpen.style.display = 'block';
+                openVideo.play();
+            });
+            openVideo.load();
+            openVideo.addEventListener('ended', function() {
+                stageOpen.style.display = 'none';
+                window.location.href = 'scene5.html';
+            });
+        }
+
+        function bloom(x, y) {
+            if (!isOnDoor(x, y)) return;
+            if (doorOpened) return;
+            clickCount++;
+            if (clickCount >= 40) { triggerOpenDoor(); return; }
+            if (captions[clickCount]) showCaption(captions[clickCount]);
+            let now = p.millis();
+            let dist = p.dist(x, y, lastClickX, lastClickY);
+            let dt = now - lastClickTime;
+            let isDouble = dt < 400 && dist < 40;
+            if (isDouble) {
+                for (let i = flowers.length-1; i >= 0; i--) {
+                    if (p.dist(flowers[i].x, flowers[i].y, x, y) < 50) flowers.splice(i,1);
+                }
+                flowers.push(new MandalaFlower(x, y, true));
+            } else {
+                flowers.push(new MandalaFlower(x, y, false));
+            }
+            lastClickTime = now; lastClickX = x; lastClickY = y;
+            let h = document.getElementById('close-hint');
+            if (h) h.style.display = 'none';
+        }
+
+        p.mousePressed = function() { bloom(p.mouseX, p.mouseY); return false; };
+        p.touchStarted = function() {
+            if (p.touches.length > 0) bloom(p.touches[0].x, p.touches[0].y);
+            return false;
+        };
+        p.windowResized = function() {
+            let container = document.getElementById('p5-canvas');
+            p.resizeCanvas(container.clientWidth, container.clientHeight);
+        };
+
+    }, 'p5-canvas');
+}
+</script>
+</body>
+</html>

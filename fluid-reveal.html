@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fluid Reveal</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: #000;
+  }
+  canvas {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<script>
+const canvas = document.getElementById('c');
+const gl = canvas.getContext('webgl2', { antialias: false });
+
+// ── 图片路径（替换成你项目里的路径）──
+const IMG_SOLID    = 'images/骨骼 (2).png';  // 默认显示：人体
+const IMG_SKELETON = 'images/骨骼 (1).png';  // 鼠标划过显示：骨骼
+
+let W, H, pr;
+let solidTex, skeleTex;
+let trailFBO_A, trailFBO_B, fluidFBO_A, fluidFBO_B;
+let trailTex_A, trailTex_B, fluidTex_A, fluidTex_B;
+let quadBuf;
+
+// 鼠标
+let mouseX = 0.5, mouseY = 0.5;
+let lastX = 0.5, lastY = 0.5;
+let trailOpacity = 0;
+
+window.addEventListener('mousemove', e => {
+  mouseX = e.clientX / window.innerWidth;
+  mouseY = 1.0 - e.clientY / window.innerHeight;
+});
+window.addEventListener('touchmove', e => {
+  e.preventDefault();
+  mouseX = e.touches[0].clientX / window.innerWidth;
+  mouseY = 1.0 - e.touches[0].clientY / window.innerHeight;
+}, { passive: false });
+
+// ── Shader 源码 ──────────────────────────────────────────────
+
+const VS = `#version 300 es
+in vec2 a_pos;
+out vec2 v_uv;
+void main(){
+  v_uv = a_pos * 0.5 + 0.5;
+  gl_Position = vec4(a_pos, 0.0, 1.0);
+}`;
+
+// 鼠标轨迹 shader
+const TRAIL_FS = `#version 300 es
+precision highp float;
+in vec2 v_uv;
+out vec4 fragColor;
+uniform sampler2D u_prev;
+uniform vec2 u_mouse;
+uniform vec2 u_last;
+uniform float u_opacity;
+uniform float u_radius;
+
+void main(){
+  vec4 prev = texture(u_prev, v_uv);
+  // 渐变到白色（fade out）
+  float faded = min(1.0, prev.r + 0.025);
+
+  // 线段到点的距离
+  vec2 pa = v_uv - u_last;
+  vec2 ba = u_mouse - u_last;
+  float h = clamp(dot(pa, ba) / max(dot(ba, ba), 0.0001), 0.0, 1.0);
+  float d = length(pa - ba * h);
+
+  float trail = 1.0 - smoothstep(0.0, u_radius, d);
+  float val = min(faded, 1.0 - trail * u_opacity);
+
+  fragColor = vec4(val, val, val, 1.0);
+}`;
+
+// 流体扩散 shader（模拟流体蔓延）
+const FLUID_FS = `#version 300 es
+precision highp float;
+in vec2 v_uv;
+out vec4 fragColor;
+uniform sampler2D u_prev;
+uniform sampler2D u_trail;
+uniform vec2 u_texel;
+
+// 简单 noise
+float hash(vec2 p){
+  return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+}
+float noise(vec2 p){
+  vec2 i = floor(p);
+  vec2 f = fract(p);
+  vec2 u = f * f * (3.0 - 2.0 * f);
+  return mix(
+    mix(hash(i), hash(i + vec2(1,0)), u.x),
+    mix(hash(i + vec2(0,1)), hash(i + vec2(1,1)), u.x),
+    u.y);
+}
+float fbm(vec2 p){
+  float v = 0.0, a = 0.5;
+  for(int i=0;i<4;i++){
+    v += a * noise(p);
+    p = p * 2.0 + vec2(100.0);
+    a *= 0.5;
+  }
+  return v;
+}
+
+void main(){
+  vec2 uv = v_uv;
+  // noise displacement
+  vec2 disp = (fbm(uv * 20.0) - 0.5) * u_texel * 18.0;
+
+  float c  = texture(u_prev, uv).r;
+  float c1 = texture(u_prev, uv + vec2(disp.x, 0.0)).r;
+  float c2 = texture(u_prev, uv - vec2(disp.x, 0.0)).r;
+  float c3 = texture(u_prev, uv + vec2(0.0, disp.y)).r;
+  float c4 = texture(u_prev, uv - vec2(0.0, disp.y)).r;
+
+  // darken blend：取最暗（扩散暗色）
+  float flood = min(min(min(c, c1), min(c2, c3)), c4);
+
+  // 叠加轨迹
+  float trail = texture(u_trail, uv).r;
+  float combined = min(flood, trail);
+
+  // 缓慢恢复白色
+  float result = min(1.0, combined + 0.004);
+  fragColor = vec4(result, result, result, 1.0);
+}`;
+
+// 最终合成 shader：fluid mask 决定显示哪张图
+const COMPOSE_FS = `#version 300 es
+precision highp float;
+in vec2 v_uv;
+out vec4 fragColor;
+uniform sampler2D u_solid;
+uniform sampler2D u_skele;
+uniform sampler2D u_fluid;
+
+// 扫描线 + 噪声
+float hash3(vec3 p){
+  return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453);
+}
+
+void main(){
+  vec2 uv = vec2(v_uv.x, 1.0 - v_uv.y);
+  vec4 solid = texture(u_solid, uv);
+  vec4 skele = texture(u_skele, uv);
+
+  float mask = texture(u_fluid, v_uv).r;
+  float reveal = 1.0 - mask; // 0=人体 1=骨骼
+
+  vec4 color = mix(solid, skele, reveal);
+
+  // 轻微扫描线
+  float scan = sin(v_uv.y * 1200.0) * 0.04;
+  color.rgb -= scan;
+
+  // 胶片颗粒
+  float grain = hash3(vec3(v_uv * 800.0, fract(float(gl_FragCoord.x + gl_FragCoord.y) * 0.001))) * 0.03;
+  color.rgb -= grain;
+
+  // 暗角
+  vec2 c = v_uv - 0.5;
+  float vignette = 1.0 - dot(c, c) * 1.2;
+  color.rgb *= clamp(vignette, 0.0, 1.0);
+
+  fragColor = vec4(color.rgb, 1.0);
+}`;
+
+// ── WebGL 工具 ──────────────────────────────────────────────
+function compile(src, type) {
+  const s = gl.createShader(type);
+  gl.shaderSource(s, src);
+  gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS))
+    console.error(gl.getShaderInfoLog(s));
+  return s;
+}
+function program(vs, fs) {
+  const p = gl.createProgram();
+  gl.attachShader(p, compile(vs, gl.VERTEX_SHADER));
+  gl.attachShader(p, compile(fs, gl.FRAGMENT_SHADER));
+  gl.linkProgram(p);
+  if (!gl.getProgramParameter(p, gl.LINK_STATUS))
+    console.error(gl.getProgramInfoLog(p));
+  return p;
+}
+function makeFBO(w, h) {
+  const tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  const fbo = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  // 初始化为白色
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+  gl.clearColor(1, 1, 1, 1);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  return { fbo, tex };
+}
+function loadTex(url) {
+  const tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  // 占位1×1白色
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE,
+    new Uint8Array([200, 200, 220, 255]));
+  const img = new Image();
+  img.onload = () => {
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.generateMipmap(gl.TEXTURE_2D);
+  };
+  img.src = url;
+  return tex;
+}
+function bindTex(unit, tex) {
+  gl.activeTexture(gl.TEXTURE0 + unit);
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+}
+function drawQuad(prog, uniforms) {
+  gl.useProgram(prog);
+  gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf);
+  const loc = gl.getAttribLocation(prog, 'a_pos');
+  gl.enableVertexAttribArray(loc);
+  gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+  for (const [name, val] of Object.entries(uniforms)) {
+    const u = gl.getUniformLocation(prog, name);
+    if (u === null) continue;
+    if (typeof val === 'number') gl.uniform1f(u, val);
+    else if (val.length === 2) gl.uniform2fv(u, val);
+    else if (val.length === 3) gl.uniform3fv(u, val);
+    else gl.uniform1i(u, val[0]);
+  }
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+}
+
+// ── 初始化 ──────────────────────────────────────────────────
+function resize() {
+  pr = Math.min(window.devicePixelRatio, 2);
+  W  = window.innerWidth;
+  H  = window.innerHeight;
+  canvas.width  = W * pr;
+  canvas.height = H * pr;
+  canvas.style.width  = W + 'px';
+  canvas.style.height = H + 'px';
+}
+
+function init() {
+  resize();
+
+  // 全屏四边形
+  quadBuf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf);
+  gl.bufferData(gl.ARRAY_BUFFER,
+    new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+
+  // 纹理
+  solidTex = loadTex(IMG_SOLID);
+  skeleTex  = loadTex(IMG_SKELETON);
+
+  // FBO（trail + fluid 各两个做 ping-pong）
+  const tw = Math.floor(W * pr), th = Math.floor(H * pr);
+  ({ fbo: trailFBO_A, tex: trailTex_A } = makeFBO(tw, th));
+  ({ fbo: trailFBO_B, tex: trailTex_B } = makeFBO(tw, th));
+  ({ fbo: fluidFBO_A, tex: fluidTex_A } = makeFBO(tw, th));
+  ({ fbo: fluidFBO_B, tex: fluidTex_B } = makeFBO(tw, th));
+
+  window.addEventListener('resize', () => {
+    resize();
+    // 重建 FBO
+    const tw2 = Math.floor(W * pr), th2 = Math.floor(H * pr);
+    // 简单重置（实际项目可更精细处理）
+    [trailFBO_A, trailTex_A] = Object.values(makeFBO(tw2, th2));
+    [trailFBO_B, trailTex_B] = Object.values(makeFBO(tw2, th2));
+    [fluidFBO_A, fluidTex_A] = Object.values(makeFBO(tw2, th2));
+    [fluidFBO_B, fluidTex_B] = Object.values(makeFBO(tw2, th2));
+  });
+}
+
+// ── 着色器程序 ──────────────────────────────────────────────
+let progTrail, progFluid, progCompose;
+function initPrograms() {
+  progTrail   = program(VS, TRAIL_FS);
+  progFluid   = program(VS, FLUID_FS);
+  progCompose = program(VS, COMPOSE_FS);
+}
+
+// ── 渲染循环 ────────────────────────────────────────────────
+let frame = 0;
+function render() {
+  requestAnimationFrame(render);
+  frame++;
+
+  const tw = Math.floor(W * pr), th = Math.floor(H * pr);
+
+  // 鼠标平滑
+  const lerpSpeed = 0.08;
+  const cx = lastX + (mouseX - lastX) * lerpSpeed;
+  const cy = lastY + (mouseY - lastY) * lerpSpeed;
+  const dx = cx - lastX, dy = cy - lastY;
+  const dist = Math.sqrt(dx*dx + dy*dy);
+  if (dist > 0.001) {
+    trailOpacity = Math.min(1.0, trailOpacity + 0.12);
+  } else {
+    trailOpacity = Math.max(0.0, trailOpacity - 0.08);
+  }
+
+  // 1. 更新轨迹 → trailFBO_B
+  gl.bindFramebuffer(gl.FRAMEBUFFER, trailFBO_B);
+  gl.viewport(0, 0, tw, th);
+  bindTex(0, trailTex_A);
+  drawQuad(progTrail, {
+    u_prev:    [0],
+    u_mouse:   [cx, cy],
+    u_last:    [lastX, lastY],
+    u_opacity: trailOpacity,
+    u_radius:  0.15,
+  });
+
+  // 2. 流体扩散 → fluidFBO_B
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fluidFBO_B);
+  gl.viewport(0, 0, tw, th);
+  bindTex(0, fluidTex_A);
+  bindTex(1, trailTex_B);
+  drawQuad(progFluid, {
+    u_prev:   [0],
+    u_trail:  [1],
+    u_texel:  [1.0 / tw, 1.0 / th],
+  });
+
+  // 3. 合成到屏幕
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  gl.viewport(0, 0, canvas.width, canvas.height);
+  bindTex(0, solidTex);
+  bindTex(1, skeleTex);
+  bindTex(2, fluidTex_B);
+  drawQuad(progCompose, {
+    u_solid: [0],
+    u_skele: [1],
+    u_fluid: [2],
+  });
+
+  // ping-pong swap
+  let tmp;
+  tmp = trailFBO_A; trailFBO_A = trailFBO_B; trailFBO_B = tmp;
+  tmp = trailTex_A; trailTex_A = trailTex_B; trailTex_B = tmp;
+  tmp = fluidFBO_A; fluidFBO_A = fluidFBO_B; fluidFBO_B = tmp;
+  tmp = fluidTex_A; fluidTex_A = fluidTex_B; fluidTex_B = tmp;
+
+  lastX = cx; lastY = cy;
+}
+
+// ── 启动 ────────────────────────────────────────────────────
+init();
+initPrograms();
+render();
+</script>
+</body>
+</html>

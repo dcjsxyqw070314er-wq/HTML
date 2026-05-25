@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>场景六 · 风筝</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
+  #video-wrap {
+    position: fixed; top: 0; left: 0;
+    width: 300vh; height: 100vh;
+    z-index: 0; will-change: transform;
+    transform: translateX(0px);
+  }
+  #video-bg {
+    width: 100%; height: 100%;
+    object-fit: fill;
+    display: block;
+  }
+  #p5-canvas { position: fixed; top: 0; left: 0; z-index: 1; }
+
+  /* ── NEXT UI ── */
+  .next-ui {
+    position: fixed;
+    top: -220px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 500;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: top 1.4s cubic-bezier(0.22,1,0.36,1), opacity 1.2s ease;
+  }
+  .next-ui.show {
+    top: 0;
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .next-line {
+    width: 1px;
+    height: 95px;
+    background: linear-gradient(to bottom, rgba(255,255,255,0.95), rgba(255,255,255,0.15));
+    box-shadow: 0 0 10px rgba(255,255,255,0.25);
+  }
+  .next-glass-btn {
+    margin-top: -2px;
+    width: 180px;
+    height: 68px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(35,35,35,0.42);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    color: rgba(255,255,255,0.96);
+    font-size: 38px;
+    font-family: "Times New Roman", serif;
+    font-weight: 400;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.35s ease;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.28), inset 0 1px 1px rgba(255,255,255,0.06);
+  }
+  .next-glass-btn:hover {
+    transform: translateY(3px);
+    background: rgba(25,25,25,0.52);
+    letter-spacing: 3px;
+    box-shadow: 0 14px 35px rgba(0,0,0,0.35);
+  }
+
+  @import url('https://fonts.googleapis.com/css2?family=ZCOOL+XiaoWei&family=Noto+Serif+SC:wght@300;400&display=swap');
+
+  /* ── 旁白字幕 ── */
+  .subtitle-box {
+    position: fixed;
+    z-index: 400;
+    background: rgba(245, 235, 210, 0.82);
+    border: 1px solid rgba(160, 130, 80, 0.55);
+    padding: 10px 22px 11px;
+    max-width: 420px;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    box-shadow: 0 4px 18px rgba(0,0,0,0.18);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.6s ease;
+  }
+  .subtitle-box.left  { left: 36px; bottom: 48px; }
+  .subtitle-box.right { right: 36px; bottom: 48px; }
+  .subtitle-box.show  { opacity: 1; }
+  .subtitle-box .sub-zh {
+    font-family: 'Noto Serif SC', 'ZCOOL XiaoWei', serif;
+    font-size: 15px;
+    color: #0d1f3c;
+    letter-spacing: 0.8px;
+    line-height: 1.6;
+    font-weight: 400;
+  }
+  .subtitle-box .sub-en {
+    font-family: 'Georgia', 'Times New Roman', serif;
+    font-size: 12px;
+    color: #1a3060;
+    letter-spacing: 0.3px;
+    line-height: 1.5;
+    font-weight: 400;
+    font-style: italic;
+    margin-top: 4px;
+  }
+</style>
+</head>
+<body>
+
+<div id="video-wrap">
+  <video id="video-bg" autoplay loop muted playsinline>
+    <source src="videos/黄昏.mp4" type="video/mp4">
+  </video>
+</div>
+
+<!-- 旁白字幕 -->
+<div class="subtitle-box left"  id="sub1">
+  <div class="sub-zh">我的爸爸妈妈才不会说这些话，看我用风筝撞飞你们。</div>
+  <div class="sub-en">My parents would never say things like that. Watch me knock you all away with my kite.</div>
+</div>
+<div class="subtitle-box right" id="sub2">
+  <div class="sub-zh">其实我想变成大雁可以自由的触碰天空。</div>
+  <div class="sub-en">Sometimes I wish I were a wild goose, free to touch the sky.</div>
+</div>
+<div class="subtitle-box left"  id="sub3">
+  <div class="sub-zh">coco我今天真的很开心。</div>
+  <div class="sub-en">Coco, I'm really so happy today.</div>
+</div>
+
+<!-- NEXT UI -->
+<div class="next-ui" id="nextUI">
+  <div class="next-line"></div>
+  <button class="next-glass-btn" id="nextButton">next</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+<script>
+
+const videoWrap = document.getElementById('video-wrap');
+let vpx = 0, vpxT = 0;
+
+function getVideoRange() {
+  return window.innerHeight * 3 - window.innerWidth;
+}
+function initVideoPan() {
+  vpx = -getVideoRange() / 2;
+  vpxT = vpx;
+  videoWrap.style.transform = `translateX(${vpx}px)`;
+}
+initVideoPan();
+window.addEventListener('resize', initVideoPan);
+(function tick() {
+  vpx += (vpxT - vpx) * 0.025;
+  videoWrap.style.transform = `translateX(${vpx}px)`;
+  requestAnimationFrame(tick);
+})();
+
+const CFG = {
+  playerKiteImg : 'image6/黄风筝.png',
+  npcKiteImg    : 'image6/绿风筝.png',
+  kiteBaseW : 185, kiteBaseH : 185,
+  perspYNear : 0.75, perspYFar : 0.05,
+  scaleNear  : 1.2,  scaleFar  : 0.38,
+  alphaNear  : 1.0,  alphaFar  : 0.58,
+  windStrength : 26, windSpeed : 0.00085, mouseLerp : 0.014,
+  ropeAttachY : -0.10, ropeSagMax : 28,
+  ribbonSegs : 20, ribbonLen : 110, ribbonStiff : 0.18,
+  ribbonDamp : 0.74, ribbonSpread : 9, ribbonAttachY : 0.12,
+  npcRadius : 120, npcSpeed : 0.00042,
+  absorbRadius : 190, holdDuration : 200,
+  scatterOutDuration : 90, dialogDist : 230,
+};
+
+const SENTENCES = [
+  { main:'你长大了',           sub:'翅膀硬了学会顶嘴了',   reveal:'飞远一点，比我飞得高' },
+  { main:'你哭什么',           sub:'哭能解决问题吗',       reveal:'我怕你比我更脆弱' },
+  { main:'今天是你生日',       sub:'也是我的苦难日',       reveal:'是我这辈子最值的一天' },
+  { main:'你看看别人家孩子',   sub:'多么优秀',             reveal:'其实我最骄傲的是你' },
+  { main:'我因为你',           sub:'付出了那么多',         reveal:'一点都不亏' },
+  { main:'你只要在这个家一天', sub:'就得听我的',           reveal:'我只是舍不得你走' },
+  { main:'你一个小孩子',       sub:'懂什么，插什么嘴',     reveal:'你懂的比我多' },
+];
+
+// next UI 状态
+let nextUIShown = false;
+
+// ── 旁白字幕控制 ─────────────────────────────────────────────
+function showSubtitle(id, delay) {
+  setTimeout(() => {
+    const el = document.getElementById(id);
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), 7000);
+  }, delay);
+}
+
+// 字幕1：入场1秒后，左下角
+showSubtitle('sub1', 1000);
+
+// 字幕2/3 由 p5 内部事件触发，通过自定义事件通知
+window.addEventListener('scene6-round-end', (e) => {
+  if (e.detail.round === 1) showSubtitle('sub2', 0);   // 第2句结束后
+  if (e.detail.round === 3) showSubtitle('sub3', 0);   // 第4句结束后
+});
+
+document.getElementById('nextButton').addEventListener('click', () => {
+  window.location.href = 'scene8.html';
+});
+
+new p5(function(p) {
+
+  let playerImg, npcImg;
+  let kitePos, kiteVel;
+  let npcPos, npcCenter, npcAngle = 0;
+  let anchorSX, anchorSY, npcAnchorSX, npcAnchorSY;
+  let playerRibbons, npcRibbons;
+  let windXS = 0, windYS = 0;
+  let kiteFacing = 0, npcFacing = 0;
+  let npcWalkTargetX = 0, npcWalkTimer = 0;
+  let sceneAlpha = 0;
+
+  let mainChars = [], subWords = [];
+  let roundTimer = 0;
+  let subHitTimer = -1;
+  let roundRevealed = false;
+  let currentRound = 0;
+
+  p.preload = function() {
+    playerImg = p.loadImage(CFG.playerKiteImg);
+    npcImg    = p.loadImage(CFG.npcKiteImg);
+  };
+
+  p.setup = function() {
+    p.createCanvas(p.windowWidth, p.windowHeight).id('p5-canvas');
+    p.textFont('ZCOOL XiaoWei, Noto Serif SC, serif');
+    kitePos = p.createVector(p.width * 0.52, p.height * 0.28);
+    kiteVel = p.createVector(0, 0);
+    anchorSX = p.width * 0.54; anchorSY = p.height + 12;
+    npcAnchorSX = p.width * 0.30; npcAnchorSY = p.height + 12;
+    npcWalkTargetX = p.width * 0.30;
+    npcCenter = p.createVector(p.width * 0.28, p.height * 0.25);
+    npcPos = npcCenter.copy();
+    playerRibbons = makeRibbons(kitePos);
+    npcRibbons    = makeRibbons(npcPos);
+    initRound(currentRound);
+  };
+
+  p.draw = function() {
+    p.clear();
+    if (sceneAlpha < 255) sceneAlpha = p.min(sceneAlpha + 2, 255);
+    p.drawingContext.globalAlpha = sceneAlpha / 255;
+
+    let mx = p.mouseX / p.width;
+    let my = p.mouseY / p.height;
+    let videoRange = getVideoRange();
+    vpxT = -(mx * videoRange);
+
+    let t = p.frameCount;
+    let wx = p.sin(t * CFG.windSpeed) * CFG.windStrength + p.sin(t * CFG.windSpeed * 2.1) * CFG.windStrength * 0.35;
+    let wy = p.sin(t * CFG.windSpeed * 1.6) * CFG.windStrength * 0.28;
+    windXS = p.lerp(windXS, wx, 0.04);
+    windYS = p.lerp(windYS, wy, 0.04);
+
+    let targetAX = p.lerp(mx * p.width, p.width * 0.54, 0.15);
+    anchorSX = p.lerp(anchorSX, targetAX, 0.06);
+
+    npcWalkTimer++;
+    if (npcWalkTimer > 180 + Math.floor(Math.random()*120)) {
+      npcWalkTargetX = p.random(p.width * 0.05, p.width * 0.55);
+      npcWalkTimer = 0;
+    }
+    npcAnchorSX = p.lerp(npcAnchorSX, npcWalkTargetX, 0.008);
+
+    updateKite();
+    updateNPC();
+    updateRibbons(playerRibbons, kitePos, windXS,       windYS,       kiteFacing);
+    updateRibbons(npcRibbons,    npcPos,  windXS * 0.8, windYS * 0.8, npcFacing);
+    updateTextSystem();
+
+    [{npc:true,y:npcPos.y},{npc:false,y:kitePos.y}]
+      .sort((a,b)=>a.y-b.y)
+      .forEach(item => {
+        if (item.npc) drawScene(npcAnchorSX, npcAnchorSY, npcPos,  npcFacing,  npcImg,    npcRibbons,    true);
+        else          drawScene(anchorSX,    anchorSY,    kitePos, kiteFacing, playerImg, playerRibbons, false);
+      });
+
+    drawTextLayer();
+  };
+
+  function updateKite() {
+    let tx = p.lerp(p.mouseX, p.width*0.52, 0.18) + windXS*1.2;
+    let ty = p.lerp(p.mouseY, p.height*0.26, 0.22) + windYS*0.6;
+    tx = p.constrain(tx, p.width*0.06, p.width*0.94);
+    ty = p.constrain(ty, p.height*0.05, p.height*0.70);
+    kiteVel.x = (tx - kitePos.x) * CFG.mouseLerp;
+    kiteVel.y = (ty - kitePos.y) * CFG.mouseLerp;
+    kitePos.add(kiteVel);
+    let speed = p.sqrt(kiteVel.x*kiteVel.x + kiteVel.y*kiteVel.y);
+    if (speed > 0.3) {
+      let targetFacing = -(p.atan2(kiteVel.y, kiteVel.x) - p.HALF_PI);
+      targetFacing = p.constrain(targetFacing, -p.PI * 0.35, p.PI * 0.35);
+      let diff = targetFacing - kiteFacing;
+      while (diff >  p.PI) diff -= p.TWO_PI;
+      while (diff < -p.PI) diff += p.TWO_PI;
+      kiteFacing += diff * 0.06;
+    } else {
+      kiteFacing *= 0.95;
+    }
+  }
+
+  function updateNPC() {
+    npcAngle += CFG.npcSpeed * 60;
+    let videoTotalW = window.innerHeight * 3;
+    let npcVideoX = videoTotalW * 0.28 + p.sin(npcAngle) * CFG.npcRadius * 2.5;
+    let npcVideoY = p.height * 0.25 + p.sin(npcAngle * 2) * CFG.npcRadius * 0.48;
+    let prevSX = npcPos.x, prevSY = npcPos.y;
+    npcPos.x = npcVideoX + vpx;
+    npcPos.y = npcVideoY;
+    let dvx = npcPos.x - prevSX, dvy = npcPos.y - prevSY;
+    let spd = p.sqrt(dvx*dvx + dvy*dvy);
+    if (spd > 0.05) {
+      let targetFacing = -(p.atan2(dvy, dvx) - p.HALF_PI);
+      targetFacing = p.constrain(targetFacing, -p.PI * 0.3, p.PI * 0.3);
+      let diff = targetFacing - npcFacing;
+      while (diff >  p.PI) diff -= p.TWO_PI;
+      while (diff < -p.PI) diff += p.TWO_PI;
+      npcFacing += diff * 0.04;
+    } else { npcFacing *= 0.96; }
+  }
+
+  function getPerspective(posY) {
+    let t = p.map(posY, p.height*CFG.perspYFar, p.height*CFG.perspYNear, 0, 1, true);
+    return {
+      scale : p.lerp(CFG.scaleFar, CFG.scaleNear, t),
+      alpha : p.lerp(CFG.alphaFar, CFG.alphaNear, t),
+      sw    : p.lerp(0.7, 2.1, t), t,
+    };
+  }
+
+  function makeRibbons(kiteP) {
+    return [-1, 1].map(side => {
+      let nodes = [];
+      for (let i = 0; i <= CFG.ribbonSegs; i++)
+        nodes.push({ x:kiteP.x + side*CFG.ribbonSpread, y:kiteP.y, vx:0, vy:0 });
+      return { side, nodes };
+    });
+  }
+
+  function updateRibbons(ribbons, kiteP, wx, wy, facing) {
+    let persp  = getPerspective(kiteP.y);
+    let segLen = (CFG.ribbonLen * persp.scale) / CFG.ribbonSegs;
+    ribbons.forEach(rb => {
+      let nodes = rb.nodes;
+      let localX = rb.side * CFG.ribbonSpread * persp.scale;
+      let localY = CFG.kiteBaseH * persp.scale * Math.abs(CFG.ribbonAttachY);
+      let backFacing = facing + Math.PI;
+      let cosF = Math.cos(backFacing), sinF = Math.sin(backFacing);
+      let cosO = Math.cos(facing), sinO = Math.sin(facing);
+      nodes[0].x = kiteP.x + localX * cosO + localY * sinF;
+      nodes[0].y = kiteP.y + localX * sinO - localY * cosF;
+      for (let i = 1; i <= CFG.ribbonSegs; i++) {
+        let n = nodes[i], prev = nodes[i-1];
+        let turb = p.noise(i * 0.4, p.frameCount * 0.012 + rb.side) * 2 - 1;
+        n.vx += wx * 0.075 + turb * 0.5;
+        n.vy += 0.22 + wy * 0.03 + turb * 0.1;
+        let dx = n.x - prev.x, dy = n.y - prev.y;
+        let dist = p.sqrt(dx*dx + dy*dy) || 0.001;
+        let diff = (dist - segLen) / dist;
+        n.x -= dx * diff * CFG.ribbonStiff;
+        n.y -= dy * diff * CFG.ribbonStiff;
+        n.vx *= CFG.ribbonDamp; n.vy *= CFG.ribbonDamp;
+        n.x += n.vx; n.y += n.vy;
+      }
+    });
+  }
+
+  function drawRibbons(ribbons, kiteP, isNpc, facing) {
+    let persp = getPerspective(kiteP.y);
+    ribbons.forEach(rb => {
+      let nodes = rb.nodes, n = CFG.ribbonSegs;
+      for (let i = 0; i < n; i++) {
+        let tRatio = i / n;
+        let sw = p.lerp(3.8, 0.4, tRatio) * persp.scale;
+        let a  = p.lerp(230, 0, tRatio * tRatio) * persp.alpha;
+        let r, g, b;
+        if (!isNpc) { r=p.lerp(255,255,tRatio); g=p.lerp(200,240,tRatio); b=p.lerp(80,200,tRatio); }
+        else        { r=p.lerp(160,200,tRatio); g=p.lerp(230,255,tRatio); b=p.lerp(180,230,tRatio); }
+        p.push(); p.noFill(); p.strokeWeight(sw); p.stroke(r,g,b,a);
+        if (tRatio < 0.35) {
+          p.drawingContext.shadowColor = isNpc
+            ? `rgba(160,240,200,${0.5*(1-tRatio/0.35)*persp.alpha})`
+            : `rgba(255,210,80,${0.6*(1-tRatio/0.35)*persp.alpha})`;
+          p.drawingContext.shadowBlur = 8;
+        }
+        p.line(nodes[i].x, nodes[i].y, nodes[i+1].x, nodes[i+1].y);
+        p.drawingContext.shadowBlur = 0; p.pop();
+      }
+    });
+  }
+
+  function drawRope(bx, by, kiteP, persp, facing) {
+    let localY  = CFG.kiteBaseH * persp.scale * CFG.ropeAttachY;
+    let attachX = kiteP.x + localY * p.sin(facing);
+    let attachY = kiteP.y + localY * p.cos(facing);
+    let sag  = p.map(Math.abs(windXS), 0, CFG.windStrength, 0, CFG.ropeSagMax, true) * Math.sign(windXS);
+    let midX = (bx + attachX) * 0.5 + sag;
+    let midY = (by + attachY) * 0.5 - 6;
+    let ropeSegs = 20;
+    p.push(); p.noFill();
+    for (let i = 0; i < ropeSegs; i++) {
+      let t0 = i / ropeSegs, t1 = (i+1) / ropeSegs;
+      let x0 = bx*(1-t0)*(1-t0) + midX*2*t0*(1-t0) + attachX*t0*t0;
+      let y0 = by*(1-t0)*(1-t0) + midY*2*t0*(1-t0) + attachY*t0*t0;
+      let x1 = bx*(1-t1)*(1-t1) + midX*2*t1*(1-t1) + attachX*t1*t1;
+      let y1 = by*(1-t1)*(1-t1) + midY*2*t1*(1-t1) + attachY*t1*t1;
+      p.stroke(240, 235, 225, 170 * persp.alpha);
+      p.strokeWeight(p.lerp(2.8, 0.4, t0));
+      p.line(x0, y0, x1, y1);
+    }
+    p.pop();
+  }
+
+  function drawScene(bx, by, kiteP, facing, img, ribbons, isNpc) {
+    let persp = getPerspective(kiteP.y);
+    drawRope(bx, by, kiteP, persp, facing);
+    drawRibbons(ribbons, kiteP, isNpc, facing);
+    let w = CFG.kiteBaseW * persp.scale, h = CFG.kiteBaseH * persp.scale;
+    p.push();
+    p.drawingContext.globalAlpha *= persp.alpha;
+    p.translate(kiteP.x, kiteP.y);
+    p.rotate(facing);
+    p.imageMode(p.CENTER);
+    p.image(img, 0, 0, w, h);
+    p.pop();
+  }
+
+  // ── 文字系统 ────────────────────────────────────────────────
+  function videoToScreen(vx) { return vx + vpx; }
+
+  function initRound(ri) {
+    let sent = SENTENCES[ri];
+    let videoTotalW = window.innerHeight * 3;
+    mainChars = []; subWords = [];
+
+    sent.main.split('').forEach((ch, i) => {
+      let vx  = p.random(videoTotalW * 0.04, videoTotalW * 0.96);
+      let vy  = p.random(p.height * 0.08, p.height * 0.62);
+      let sz  = p.map(vy, p.height*0.08, p.height*0.62, 22, 58);
+      let alp = p.map(vy, p.height*0.08, p.height*0.62, 200, 255);
+      mainChars.push({ ch, vx, vy, curY:-60-i*30, vy_anim:0, state:'dropping',
+        bounceCount:0, alpha:0, targetAlpha:alp, sz,
+        floatOffset:p.random(p.TWO_PI), floatSpeed:p.random(0.006,0.014), delay:i*18 });
+    });
+
+    let subChars = ('（' + sent.sub + '）').split('');
+    let groupVX = p.random(videoTotalW * 0.1, videoTotalW * 0.85);
+    let groupVY = p.random(p.height * 0.15, p.height * 0.55);
+    let subSz   = p.map(groupVY, p.height*0.08, p.height*0.62, 18, 38);
+    subChars.forEach((ch, i) => {
+      subWords.push({ ch, vx:groupVX+i*(subSz*1.1), vy:groupVY, curY:groupVY,
+        vy_anim:0, state:'dropping', bounceCount:0, alpha:0, targetAlpha:230, sz:subSz,
+        floatOffset:p.random(p.TWO_PI), floatSpeed:p.random(0.005,0.012),
+        delay:sent.main.length*18+i*12, hit:false });
+    });
+
+    roundTimer = 0;
+    roundRevealed = false;
+  }
+
+  function updateDropChar(c) {
+    if (roundTimer < c.delay) return;
+    if (c.state === 'dropping') {
+      c.vy_anim += 1.2; c.curY += c.vy_anim;
+      c.alpha = p.min(c.alpha + 8, c.targetAlpha);
+      if (c.curY >= c.vy) {
+        c.curY = c.vy; c.vy_anim *= -0.45; c.bounceCount++;
+        if (Math.abs(c.vy_anim) < 1.5) { c.state='idle'; c.curY=c.vy; }
+        else c.state = 'bouncing';
+      }
+    } else if (c.state === 'bouncing') {
+      c.vy_anim += 1.2; c.curY += c.vy_anim;
+      if (c.curY >= c.vy) {
+        c.curY = c.vy; c.vy_anim *= -0.4;
+        if (Math.abs(c.vy_anim) < 1.5) { c.state='idle'; c.curY=c.vy; }
+      }
+    } else {
+      c.curY  = c.vy + p.sin(p.frameCount * c.floatSpeed + c.floatOffset) * 2.5;
+      c.alpha = p.lerp(c.alpha, c.targetAlpha, 0.04);
+    }
+  }
+
+  function updateTextSystem() {
+    roundTimer++;
+
+    // 碰后5秒淡出，切下一句
+    if (subHitTimer > 0 && p.frameCount - subHitTimer > 300) {
+      let fadeSpeed = 2.5;
+      mainChars.forEach(c => c.alpha = p.max(c.alpha - fadeSpeed, 0));
+      subWords.forEach(c  => c.alpha = p.max(c.alpha - fadeSpeed, 0));
+      let allGone = [...mainChars, ...subWords].every(c => c.alpha < 3);
+      if (allGone) {
+        subHitTimer = -1;
+        let nextRound = (currentRound + 1) % SENTENCES.length;
+        // 第4句（index=3）结束后显示 next UI
+        if (currentRound === 5 && !nextUIShown) {
+          nextUIShown = true;
+          document.getElementById('nextUI').classList.add('show');
+        }
+        // 派发字幕事件（传出去时 currentRound 还是旧的）
+        window.dispatchEvent(new CustomEvent('scene6-round-end', { detail: { round: currentRound } }));
+        currentRound = nextRound;
+        initRound(currentRound);
+      }
+      return;
+    }
+
+    mainChars.forEach(c => updateDropChar(c));
+
+    subWords.forEach(c => {
+      updateDropChar(c);
+      if (c.hit || roundRevealed) return;
+      let screenX = videoToScreen(c.vx + c.sz/2);
+      let d = p.dist(kitePos.x, kitePos.y, screenX, c.curY);
+      if (d < 55) {
+        c.hit = true;
+        let thisSent = SENTENCES[currentRound];
+        let newChars = ('（' + thisSent.reveal + '）').split('');
+        let baseVX = subWords[0] ? subWords[0].vx : window.innerHeight * 0.5;
+        let baseVY = subWords[0] ? subWords[0].vy : p.height * 0.35;
+        let newSz  = subWords[0] ? subWords[0].sz  : 24;
+        subWords = newChars.map((ch, i) => ({
+          ch, vx:baseVX+i*(newSz*1.1), vy:baseVY, curY:-50-i*8,
+          vy_anim:0, state:'dropping', bounceCount:0, alpha:0, targetAlpha:230,
+          sz:newSz, floatOffset:p.random(p.TWO_PI), floatSpeed:p.random(0.005,0.012),
+          delay:i*12, hit:false,
+        }));
+        subHitTimer = p.frameCount;
+        roundRevealed = true;
+      }
+    });
+  }
+
+  function drawTextLayer() {
+    mainChars.forEach(c => {
+      if (c.alpha < 2) return;
+      let sx = videoToScreen(c.vx);
+      if (sx < -200 || sx > p.width + 200) return;
+      p.push();
+      p.stroke(255, 255, 255, c.alpha * 0.25); p.strokeWeight(1.2);
+      p.fill(255, 255, 255, c.alpha);
+      p.textSize(c.sz); p.textAlign(p.CENTER, p.BASELINE);
+      p.textFont('ZCOOL XiaoWei, Noto Serif SC, serif');
+      p.drawingContext.shadowColor = 'rgba(255,220,100,1.0)';
+      p.drawingContext.shadowBlur  = 30;
+      p.text(c.ch, sx, c.curY);
+      p.noStroke(); p.fill(255, 245, 200, c.alpha * 0.55);
+      p.drawingContext.shadowBlur = 10;
+      p.text(c.ch, sx, c.curY);
+      p.drawingContext.shadowBlur = 0; p.pop();
+    });
+
+    subWords.forEach(c => {
+      if (c.alpha < 2) return;
+      let sx = videoToScreen(c.vx);
+      if (sx < -200 || sx > p.width + 200) return;
+      p.push();
+      p.stroke(255, 240, 200, c.alpha * 0.2); p.strokeWeight(1.0);
+      p.fill(255, 245, 210, c.alpha);
+      p.textSize(c.sz * 0.85); p.textAlign(p.LEFT, p.BASELINE);
+      p.textFont('Noto Serif SC, serif');
+      p.drawingContext.shadowColor = 'rgba(255,200,80,1.0)';
+      p.drawingContext.shadowBlur  = 26;
+      p.text(c.ch, sx, c.curY);
+      p.noStroke(); p.fill(255, 255, 230, c.alpha * 0.5);
+      p.drawingContext.shadowBlur = 8;
+      p.text(c.ch, sx, c.curY);
+      p.drawingContext.shadowBlur = 0; p.pop();
+    });
+  }
+
+  p.windowResized = function() {
+    p.resizeCanvas(p.windowWidth, p.windowHeight);
+    anchorSX=p.width*0.54; anchorSY=p.height+12;
+    npcAnchorSX=p.width*0.30; npcAnchorSY=p.height+12;
+    npcCenter.set(p.width*0.28, p.height*0.25);
+  };
+
+}); // end p5
+</script>
+</body>
+</html>

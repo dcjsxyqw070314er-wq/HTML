@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scene 8 - 夜色</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { width: 100vw; height: 100vh; overflow: hidden; background: #020810; }
+
+  #bg-video {
+    position: fixed;
+    inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+    z-index: 0;
+  }
+
+  #p5-wrap {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  /* 鼠标交互层 */
+  #interact {
+    position: fixed;
+    inset: 0;
+    z-index: 2;
+  }
+
+  #goodnight {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    background: #000;
+    visibility: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-bottom: 4vh;
+  }
+
+  .gn-row {
+    position: relative;
+    display: flex;
+    gap: 0.55em;
+    align-items: center;
+    white-space: nowrap;
+  }
+
+  .gn-char {
+    color: #fff;
+    font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", "微软雅黑", sans-serif;
+    font-weight: 300;
+    font-size: clamp(60px, 9vw, 120px);
+    letter-spacing: 0.1em;
+    opacity: 0;
+    display: inline-block;
+    will-change: opacity, transform;
+  }
+
+  /* 英文独立顶层，与中文各自居中叠放 */
+  #gn-sub {
+    position: fixed;
+    top: calc(50% - 2vh);
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 25;
+    color: rgba(255,255,255,0.45);
+    font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+    font-weight: 200;
+    font-size: clamp(16px, 2vw, 26px);
+    letter-spacing: 1.2em;
+    padding-left: 1.2em;
+    text-transform: uppercase;
+    opacity: 0;
+    white-space: nowrap;
+    text-align: center;
+    pointer-events: none;
+    visibility: hidden;
+  }
+
+  @keyframes char-rise {
+    0%   { opacity: 0; transform: translateY(10px); }
+    100% { opacity: 0.88; transform: translateY(0); }
+  }
+
+  @keyframes breathe {
+    0%, 100% { opacity: 0.75; }
+    50%       { opacity: 0.95; }
+  }
+
+  /* ── scene4同款文字框 ── */
+  .s8-caption {
+    position: fixed;
+    z-index: 30;
+    padding: 10px 24px;
+    text-align: center;
+    background: #FAF0C8;
+    border: 1px solid #1B2A4A;
+    border-radius: 0;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(16px);
+    transition: opacity 0.8s ease, transform 0.8s ease;
+  }
+  .s8-caption.pos-bl { bottom: 10%; left: 5%; }
+  .s8-caption.pos-br { bottom: 10%; right: 5%; }
+  .s8-caption.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .s8-caption.hiding {
+    opacity: 0;
+    transition: opacity 0.6s ease;
+  }
+  .s8-caption .cn {
+    color: #1B2A4A;
+    font: 500 15px/1.5 'Georgia', '宋体', serif;
+    letter-spacing: 3px;
+  }
+  .s8-caption .en {
+    color: #1B2A4A;
+    font: italic 11px/1.3 'Georgia', serif;
+    letter-spacing: 1.5px;
+    margin-top: 2px;
+    opacity: 0.6;
+  }
+</style>
+</head>
+<body>
+
+<video id="bg-video" autoplay muted loop playsinline>
+  <source src="videos/夜色.mp4" type="video/mp4">
+</video>
+
+<div id="p5-wrap"></div>
+<div id="interact"></div>
+
+<!-- 台词框 -->
+<div id="cap1" class="s8-caption pos-bl">
+  <div class="cn">今天真是美好的一天，要是每天都这样就好了。</div>
+  <div class="en">What a beautiful day — I wish every day could feel like this.</div>
+</div>
+<div id="cap2" class="s8-caption pos-br">
+  <div class="cn">这里的夜色也很美呢。</div>
+  <div class="en">The night view here is lovely too.</div>
+</div>
+<div id="cap3" class="s8-caption pos-bl">
+  <div class="cn">哎呀，有点困了。</div>
+  <div class="en">Oh my, I'm getting a little sleepy...</div>
+</div>
+<div id="goodnight">
+  <div class="gn-row">
+    <span class="gn-char">晚</span>
+    <span class="gn-char">安</span>
+    <span class="gn-char">宝</span>
+    <span class="gn-char">贝</span>
+  </div>
+</div>
+<span id="gn-sub">good night, my dear</span>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.3/p5.min.js"></script>
+<script>
+new p5(function(p) {
+
+  // ── 参数 ──────────────────────────────
+  const NUM          = 75;    // 萤火虫数量（+20）
+  const ATTRACT_R    = 350;   // 鼠标感应半径
+  const ATTRACT_F    = 0.045; // 聚拢力（明显）
+  const MAX_SPEED    = 1.0;   // 自由游走最大速度
+  const REPEL_R      = 30;    // 萤火虫互相排斥半径（防堆叠）
+
+  let flies = [];
+  let mx = -9999, my = -9999;
+
+  // 把鼠标事件挂在交互层
+  const layer = document.getElementById('interact');
+  layer.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
+  layer.addEventListener('mouseleave', () => { mx = -9999; my = -9999; });
+
+  // 触屏
+  layer.addEventListener('touchmove', e => {
+    e.preventDefault();
+    mx = e.touches[0].clientX;
+    my = e.touches[0].clientY;
+  }, { passive: false });
+  layer.addEventListener('touchend', () => { mx = -9999; my = -9999; });
+
+  // ── 萤火虫类 ─────────────────────────
+  class Fly {
+    constructor() { this.init(); }
+
+    init() {
+      this.x  = p.random(p.width);
+      this.y  = p.random(p.height);
+      this.vx = p.random(-0.5, 0.5);
+      this.vy = p.random(-0.5, 0.5);
+
+      // 游走
+      this.wanderAngle = p.random(p.TWO_PI);
+      this.wanderTurn  = p.random(0.015, 0.045);
+
+      // 停顿
+      this.pauseCountdown = p.random(80, 300);
+      this.pauseDuration  = 0;
+      this.pausing        = false;
+
+      // 大小
+      this.baseR = p.random(2.5, 7);
+
+      // 颜色（偏黄绿，少量蓝白）
+      if (p.random() < 0.15) {
+        // 蓝白 —— 远处星光感
+        this.cr = p.random(180, 220);
+        this.cg = p.random(220, 255);
+        this.cb = p.random(220, 255);
+      } else {
+        // 黄绿主色
+        this.cr = p.random(150, 220);
+        this.cg = p.random(230, 255);
+        this.cb = p.random(60,  140);
+      }
+
+      // 脉动（每只独立相位+频率）
+      this.phase      = p.random(p.TWO_PI);
+      this.pulseHz    = p.random(0.007, 0.028);
+      this.pulseDepth = p.random(0.35, 0.75); // 闪烁幅度
+      this.pulseBase  = p.random(0.15, 0.45); // 最暗时的底
+    }
+
+    // 当前亮度 0~1
+    get brightness() {
+      return this.pulseBase + this.pulseDepth * (Math.sin(this.phase) * 0.5 + 0.5);
+    }
+
+    update(allFlies) {
+      this.phase += this.pulseHz;
+
+      // 停顿计时
+      if (!this.pausing) {
+        this.pauseCountdown--;
+        if (this.pauseCountdown <= 0) {
+          this.pausing = true;
+          this.pauseDuration = p.random(40, 100);
+        }
+      } else {
+        this.vx *= 0.88;
+        this.vy *= 0.88;
+        this.pauseDuration--;
+        if (this.pauseDuration <= 0) {
+          this.pausing = false;
+          this.pauseCountdown = p.random(80, 300);
+        }
+      }
+
+      // 鼠标吸附
+      const dx   = mx - this.x;
+      const dy   = my - this.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const attracted = dist < ATTRACT_R && mx > -100;
+
+      if (attracted) {
+        const f = (1 - dist / ATTRACT_R) * ATTRACT_F;
+        this.vx += (dx / dist) * f;
+        this.vy += (dy / dist) * f;
+      } else if (!this.pausing) {
+        // 自由游走：随机转向
+        this.wanderAngle += p.random(-this.wanderTurn, this.wanderTurn);
+        this.vx += Math.cos(this.wanderAngle) * 0.018;
+        this.vy += Math.sin(this.wanderAngle) * 0.018;
+      }
+
+      // 萤火虫间轻微排斥（防止扎堆）
+      for (const other of allFlies) {
+        if (other === this) continue;
+        const rx = this.x - other.x;
+        const ry = this.y - other.y;
+        const rd = Math.sqrt(rx * rx + ry * ry);
+        if (rd < REPEL_R && rd > 0.1) {
+          const rf = (REPEL_R - rd) / REPEL_R * 0.012;
+          this.vx += (rx / rd) * rf;
+          this.vy += (ry / rd) * rf;
+        }
+      }
+
+      // 限速（吸引时也保持正常速度，只是方向偏移）
+      const spd    = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+      const maxSpd = MAX_SPEED;
+      if (spd > maxSpd) {
+        this.vx = (this.vx / spd) * maxSpd;
+        this.vy = (this.vy / spd) * maxSpd;
+      }
+
+      this.x += this.vx;
+      this.y += this.vy;
+
+      // 边缘软反弹
+      const m = 50;
+      if (this.x < m)              this.vx += 0.06;
+      if (this.x > p.width  - m)  this.vx -= 0.06;
+      if (this.y < m)              this.vy += 0.06;
+      if (this.y > p.height - m)   this.vy -= 0.06;
+    }
+
+    draw() {
+      const bri   = this.brightness;
+      const alpha = bri;
+      const r     = this.baseR;
+
+      const dc = p.drawingContext;
+
+      // 外晕（大，很淡）
+      const outerR = r * 4.5;
+      const go = dc.createRadialGradient(this.x, this.y, 0, this.x, this.y, outerR);
+      go.addColorStop(0,   `rgba(${this.cr},${this.cg},${this.cb},${(alpha*0.28).toFixed(3)})`);
+      go.addColorStop(0.5, `rgba(${this.cr},${this.cg},${this.cb},${(alpha*0.08).toFixed(3)})`);
+      go.addColorStop(1,   `rgba(${this.cr},${this.cg},${this.cb},0)`);
+      dc.fillStyle = go;
+      dc.beginPath();
+      dc.arc(this.x, this.y, outerR, 0, Math.PI * 2);
+      dc.fill();
+
+      // 中晕
+      const midR = r * 1.8;
+      const gm = dc.createRadialGradient(this.x, this.y, 0, this.x, this.y, midR);
+      gm.addColorStop(0,   `rgba(${this.cr},${this.cg},${this.cb},${(alpha*0.7).toFixed(3)})`);
+      gm.addColorStop(1,   `rgba(${this.cr},${this.cg},${this.cb},0)`);
+      dc.fillStyle = gm;
+      dc.beginPath();
+      dc.arc(this.x, this.y, midR, 0, Math.PI * 2);
+      dc.fill();
+
+      // 亮核（纯白点）
+      const coreR = r * 0.55;
+      const gc = dc.createRadialGradient(this.x, this.y, 0, this.x, this.y, coreR);
+      gc.addColorStop(0,   `rgba(255,255,255,${(alpha*0.95).toFixed(3)})`);
+      gc.addColorStop(0.6, `rgba(${this.cr},${this.cg},${this.cb},${(alpha*0.6).toFixed(3)})`);
+      gc.addColorStop(1,   `rgba(${this.cr},${this.cg},${this.cb},0)`);
+      dc.fillStyle = gc;
+      dc.beginPath();
+      dc.arc(this.x, this.y, coreR, 0, Math.PI * 2);
+      dc.fill();
+    }
+  }
+
+  // ── p5 setup / draw ──────────────────
+  p.setup = function() {
+    const cnv = p.createCanvas(window.innerWidth, window.innerHeight);
+    cnv.parent('p5-wrap');
+    cnv.style('pointer-events', 'none');
+    p.noStroke();
+    for (let i = 0; i < NUM; i++) flies.push(new Fly());
+
+    // 8秒后开始闪烁变暗
+    setTimeout(startFlicker, 8000);
+
+    // 台词触发
+    setTimeout(() => showCap('cap1'), 1000);
+    setTimeout(() => showCap('cap2'), 8000);
+    setTimeout(() => showCap('cap3'), 16000);
+  };
+
+  // ── 台词显示 ─────────────────────────
+  function showCap(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.add('visible');
+    setTimeout(() => {
+      el.classList.add('hiding');
+      setTimeout(() => {
+        el.classList.remove('visible', 'hiding');
+      }, 700);
+    }, 6000);
+  }
+
+  // ── 闪烁变黑逻辑 ─────────────────────
+  let flickerActive = false;
+  let flickerCount  = 0;
+  const FLICKER_TOTAL = 8;
+  let overlayAlpha  = 0;
+  let flickerPhase  = 'idle';
+  let phaseProgress = 0;
+
+  // 每次呼吸的暗/亮目标（阶梯下沉）
+  function getDarkTarget()  { return (flickerCount + 1) / FLICKER_TOTAL; }
+  function getLightTarget() { return flickerCount / FLICKER_TOTAL * 0.75; }
+
+  function startFlicker() {
+    flickerActive = true;
+    flickerPhase  = 'darkening';
+    phaseProgress = 0;
+  }
+
+  function updateFlicker() {
+    if (!flickerActive || flickerPhase === 'done') return;
+
+    phaseProgress++;
+
+    if (flickerPhase === 'darkening') {
+      // 慢慢变暗，像呼气
+      const target = getDarkTarget();
+      overlayAlpha += (target - overlayAlpha) * 0.018;
+
+      if (phaseProgress > 90) {
+        if (flickerCount >= FLICKER_TOTAL - 1) {
+          // 最后一次变暗结束，直接在当前黑度上显示文字，不再有 final 阶段
+          overlayAlpha = 1;
+          flickerPhase = 'done';
+          showGoodnight();
+          return;
+        }
+        flickerPhase  = 'brightening';
+        phaseProgress = 0;
+      }
+    }
+
+    if (flickerPhase === 'brightening') {
+      // 稍微回亮，但底线比原来暗，像吸气但越来越浅
+      const target = getLightTarget();
+      overlayAlpha += (target - overlayAlpha) * 0.014;
+
+      if (phaseProgress > 80) { // 约1.3秒回亮
+        flickerCount++;
+        flickerPhase  = 'darkening';
+        phaseProgress = 0;
+      }
+    }
+
+    // 画黑色遮罩
+    const dc = p.drawingContext;
+    dc.globalCompositeOperation = 'source-over';
+    dc.fillStyle = `rgba(0,0,0,${overlayAlpha.toFixed(4)})`;
+    dc.fillRect(0, 0, p.width, p.height);
+  }
+
+  function showGoodnight() {
+    const el    = document.getElementById('goodnight');
+    const chars = Array.from(el.querySelectorAll('.gn-char'));
+    const sub   = document.getElementById('gn-sub');
+
+    // 显示黑底
+    el.style.visibility = 'visible';
+    // 英文独立显示
+    sub.style.visibility = 'visible';
+
+    // 逐字飘入
+    chars.forEach((c, i) => {
+      setTimeout(() => {
+        c.style.animation = 'char-rise 2s cubic-bezier(0.25,0.46,0.45,0.94) forwards';
+      }, 600 + i * 500);
+    });
+
+    // 四字出完后英文淡入
+    const subDelay = 600 + chars.length * 500 + 600;
+    setTimeout(() => {
+      sub.style.transition = 'opacity 2.2s ease';
+      sub.style.opacity = '0.45';
+    }, subDelay);
+
+    // 全部出现后呼吸动画
+    const breatheDelay = subDelay + 2400;
+    setTimeout(() => {
+      chars.forEach((c, i) => {
+        c.style.animation = `breathe 4s ease-in-out ${i * 0.6}s infinite`;
+        c.style.opacity = '0.88';
+      });
+    }, breatheDelay);
+  }
+
+  p.draw = function() {
+    p.clear();
+    p.drawingContext.globalCompositeOperation = 'lighter';
+    for (const f of flies) { f.update(flies); f.draw(); }
+    p.drawingContext.globalCompositeOperation = 'source-over';
+    updateFlicker();
+  };
+
+  p.windowResized = function() {
+    p.resizeCanvas(window.innerWidth, window.innerHeight);
+  };
+
+}, 'p5-wrap');
+</script>
+</body>
+</html>

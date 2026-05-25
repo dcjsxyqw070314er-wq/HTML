@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="./favicon.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,900&display=swap" rel="stylesheet">
+    <title>Tokyo Night Tetris</title>
+    <style>
+      body, html { overflow: hidden;
+        background: #1A1B26;
+      }
+      .splash {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: #1A1B26;
+        z-index: 1000;
+      }
+      #mobile-alert {
+        visibility: visible;
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background-image: url(./ascii.jpg);
+        background-repeat: no-repeat;
+        background-size: cover;
+        background-position: center;
+      }
+      .tnt {
+        position: absolute;
+        bottom: 16px;
+        left: 16px;
+        transform: scale(0.28);
+        transform-origin: bottom left;
+        z-index: 1000;
+      }
+      #react-root, #canvas-root {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        right: 0;
+      }
+      @keyframes rotate {
+        from {
+          transform: rotate(0);
+        }
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      .hidden {
+        opacity: 0;
+      }
+      .visible {
+        opacity: 1;
+      }
+      #loader {
+        font-family: monospace;
+        white-space: pre;
+        color: white;
+        font-size: 24px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        height: 100%;
+        align-items: center;
+      }
+      #loader #l1 {
+        color: #E9426C;
+      }
+      #loader #l2 {
+        color: #3670C0;
+      }
+      #loader #l3 {
+        color: #D66D01;
+      }
+    </style>
+    <script type="module" crossorigin src="./assets/index.e6e99358.js"></script>
+    <link rel="stylesheet" href="./assets/index.be6c465b.css">
+  </head>
+  <body>
+    <div class="splash">
+      <div id="loader">
+        <div id="l1"></div>
+        <div id="l2"></div>
+        <div id="l3"></div>
+      </div>
+      <div id="mobile-alert" style="visibility: hidden;">
+      </div>
+    </div>
+    <script>
+      const frames = [
+        '[=     ]',
+        '[ =    ]',
+        '[  =   ]',
+        '[   =  ]',
+        '[    = ]',
+        '[     =]',
+        '[    = ]',
+        '[   =  ]',
+        '[  =   ]',
+        '[ =    ]',
+      ];
+      const loaders = [
+        {
+          frameIndex: 0,
+          speed: 64,
+          el: document.getElementById('l1'),
+          interval: null,
+        },
+        {
+          frameIndex: 0,
+          speed: 96,
+          el: document.getElementById('l2'),
+          interval: null,
+        },
+        {
+          frameIndex: 0,
+          speed: 128,
+          el: document.getElementById('l3'),
+          interval: null,
+        },
+      ];
+
+      function updateLoader(loader) {
+          loader.el.textContent = frames[loader.frameIndex];
+          loader.frameIndex = (loader.frameIndex + 1) % frames.length; // Cycle through frames
+      }
+
+      for (let i = 0; i < loaders.length; i++) {
+        loaders[i].interval = setInterval(() => updateLoader(loaders[i]), loaders[i].speed );
+      }
+
+      function isMobile() {
+        const userAgent = navigator.userAgent;
+        const regex = /Mobi|Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
+        return regex.test(userAgent);
+      }
+      if (!isMobile()) {
+        const l = document.getElementById('loader');
+        l.style.visibility = 'visible';
+        const interval = setInterval(() => {
+          const splash = document.querySelector('.splash');
+          if (window.__READY__) {
+            clearInterval(interval);
+            setTimeout(() => {
+              loaders.forEach(l => clearInterval(l.interval));
+              splash.style.display = 'none';
+            }, 1200)
+          }
+        }, 50)
+      } else {
+        const ma = document.getElementById('mobile-alert');
+        ma.style.visibility = 'visible';
+      }
+    </script>
+    
+    
+    <div id="canvas-root"></div>
+    <div id="react-root"></div>
+    <img class="tnt" src="./tnt.png"></img>
+    <!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "1f28b7b87d934d599c41206e9654ad51"}'></script><!-- End Cloudflare Web Analytics -->
+  
+
+</body>
+</html>
+
+
+
+

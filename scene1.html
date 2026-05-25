@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>拨开雾气看世界 - 回到童年</title>
+
+    <style>
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            background: #000;
+        }
+
+        #videoContainer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 200;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #videoContainer video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        #videoContainer.hidden {
+            display: none;
+            z-index: -1;
+        }
+
+        .scene-container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .window-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        #fogCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            cursor: crosshair;
+            z-index: 2;
+        }
+
+        #dropletsContainer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 3;
+        }
+
+        .droplet {
+            position: absolute;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.8), rgba(200, 220, 255, 0.4));
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .dialog-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            z-index: 100;
+            pointer-events: none;
+        }
+
+        .dialog-overlay.active {
+            display: flex;
+        }
+
+        .dialog-box {
+            background: #FFF4E6;
+            padding: 16px 28px;
+            border: 1px solid #8B6F47;
+            max-width: 360px;
+            width: auto;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+            animation: slideIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+            text-align: center;
+            pointer-events: auto;
+            position: fixed;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: scale(0.85) translateY(-20px);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1) translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .dialog-box .dialog-title {
+            font-size: 18px;
+            color: #1a3a52;
+            font-weight: 600;
+            line-height: 1.3;
+            margin-bottom: 6px;
+            letter-spacing: 0.5px;
+        }
+
+        .dialog-box .dialog-subtitle {
+            font-size: 13px;
+            color: #1a3a52;
+            font-weight: 400;
+            line-height: 1.4;
+            letter-spacing: 0.3px;
+        }
+
+        .brush-size-panel {
+            position: fixed;
+            left: 30px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 70px;
+            height: 25vh;
+            max-height: 300px;
+            background: rgba(240, 240, 245, 0.25);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(200, 200, 210, 0.2);
+            border-radius: 50px;
+            z-index: 50;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 15px 0;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+        }
+
+        .brush-size-track {
+            position: relative;
+            width: 3px;
+            height: 160px;
+            background: rgba(120, 120, 140, 0.4);
+            border-radius: 2px;
+            cursor: pointer;
+        }
+
+        .brush-size-slider {
+            position: absolute;
+            left: 50%;
+            width: 38px;
+            height: 38px;
+            background: rgba(180, 180, 200, 0.7);
+            border: 2px solid rgba(140, 140, 160, 0.6);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            cursor: grab;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            transition: box-shadow 0.2s;
+        }
+
+        .brush-size-slider:hover {
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+        }
+
+        .brush-size-slider:active {
+            cursor: grabbing;
+        }
+
+        .brush-size-label {
+            display: none;
+        }
+
+        .brush-size-circle-top {
+            display: none;
+        }
+
+        .brush-size-circle-bottom {
+            display: none;
+        }
+
+      /* ==================== NEXT UI ==================== */
+
+.next-ui{
+
+    position: fixed;
+
+    top: -220px;
+    left: 50%;
+
+    transform: translateX(-50%);
+
+    z-index: 500;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    opacity: 0;
+
+    pointer-events: none;
+
+    transition:
+    top 1.4s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 1.2s ease;
+}
+
+.next-ui.show{
+
+    top: 0;
+
+    opacity: 1;
+
+    pointer-events: auto;
+}
+
+/* ==================== 白色细线 ==================== */
+
+.next-line{
+
+    width: 1px;
+    height: 95px;
+
+    background:
+    linear-gradient(
+        to bottom,
+        rgba(255,255,255,0.95),
+        rgba(255,255,255,0.15)
+    );
+
+    box-shadow:
+    0 0 10px rgba(255,255,255,0.25);
+}
+
+/* ==================== 深灰玻璃按钮 ==================== */
+
+.next-glass-btn{
+
+    margin-top: -2px;
+
+    width: 180px;
+    height: 68px;
+
+    border-radius: 999px;
+
+    border:
+    1px solid rgba(255,255,255,0.12);
+
+    /* 深灰透明玻璃 */
+
+    background:
+    rgba(35,35,35,0.42);
+
+    backdrop-filter: blur(18px);
+
+    -webkit-backdrop-filter: blur(18px);
+
+    /* 白色文字 */
+
+    color:
+    rgba(255,255,255,0.96);
+
+    /* 更大的字体 */
+
+    font-size: 38px;
+
+    font-family:
+    "Times New Roman",
+    serif;
+
+    font-weight: 400;
+
+    letter-spacing: 1px;
+
+    cursor: pointer;
+
+    transition:
+    all 0.35s ease;
+
+    box-shadow:
+    0 10px 30px rgba(0,0,0,0.28),
+    inset 0 1px 1px rgba(255,255,255,0.06);
+}
+
+/* ==================== hover ==================== */
+
+.next-glass-btn:hover{
+
+    transform:
+    translateY(3px);
+
+    background:
+    rgba(25,25,25,0.52);
+
+    letter-spacing: 3px;
+
+    box-shadow:
+    0 14px 35px rgba(0,0,0,0.35);
+}
+
+    </style>
+</head>
+
+<body>
+
+    <div id="videoContainer">
+        <video id="introVideo" muted playsinline>
+            <source src="./videos/intro1.mp4" type="video/mp4">
+        </video>
+    </div>
+
+    <div class="scene-container">
+
+        <div class="window-background">
+            <video id="bgVideo" muted playsinline loop autoplay style="width: 100%; height: 100%; object-fit: cover;">
+                <source src="./videos/intro2.mp4" type="video/mp4">
+            </video>
+        </div>
+
+        <canvas id="fogCanvas"></canvas>
+
+        <div id="dropletsContainer"></div>
+
+    </div>
+
+    <div class="brush-size-panel" id="brushSizePanel">
+
+        <div class="brush-size-track" id="brushSizeTrack">
+            <div class="brush-size-slider" id="brushSizeSlider"></div>
+        </div>
+
+    </div>
+
+    <div class="dialog-overlay" id="dialogOverlay">
+        <div class="dialog-box" id="dialogBox">
+            <div class="dialog-title" id="dialogTitle">标题</div>
+            <div class="dialog-subtitle" id="dialogSubtitle">副标题</div>
+        </div>
+    </div>
+
+    <!-- ==================== NEXT UI ==================== -->
+
+    <div class="next-ui" id="nextUI">
+
+        <div class="next-line"></div>
+
+        <button class="next-glass-btn" id="nextButton">
+            next
+        </button>
+
+    </div>
+
+    <script>
+
+        const canvas = document.getElementById('fogCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const dropletsContainer = document.getElementById('dropletsContainer');
+
+        let brushSize = 25;
+
+        const droplets = [];
+
+        let lastX = 0;
+        let lastY = 0;
+
+        let fogImageData = null;
+
+        let gameStarted = false;
+
+        let animationId = null;
+
+        let dialogShown = new Set();
+
+        let nextUIShown = false;
+
+        // ==================== 笔刷大小调节器 ====================
+
+        const brushSizeSlider = document.getElementById('brushSizeSlider');
+        const brushSizeTrack = document.getElementById('brushSizeTrack');
+
+        let isDraggingBrush = false;
+
+        function updateBrushSize(e) {
+
+            const rect = brushSizeTrack.getBoundingClientRect();
+
+            let y = e.clientY - rect.top;
+
+            y = Math.max(0, Math.min(y, rect.height));
+
+            brushSize = 50 - (y / rect.height) * 35;
+
+            brushSize = Math.max(15, Math.min(50, brushSize));
+
+            brushSizeSlider.style.top = y + 'px';
+        }
+
+        brushSizeTrack.addEventListener('mousedown', (e) => {
+
+            if (!gameStarted) return;
+
+            isDraggingBrush = true;
+
+            updateBrushSize(e);
+        });
+
+        brushSizeSlider.addEventListener('mousedown', (e) => {
+
+            if (!gameStarted) return;
+
+            isDraggingBrush = true;
+
+            e.stopPropagation();
+        });
+
+        document.addEventListener('mousemove', (e) => {
+
+            if (isDraggingBrush && gameStarted) {
+
+                updateBrushSize(e);
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+
+            isDraggingBrush = false;
+        });
+
+        brushSizeSlider.style.top = '80px';
+
+        // ==================== 对话配置 ====================
+
+        const dialogConfig = [
+
+            { progress: 0.0, zh: "雨停啦！", en: "The rain has stopped!" },
+
+            { progress: 0.15, zh: "哎呀，世界在慢慢显露呢～", en: "Oh, the world is revealing itself slowly..." },
+
+            { progress: 0.42, zh: "你看！你用小手画出了一个新世界！", en: "Look! You've drawn a new world with your tiny hands! ✨" },
+
+            { progress: 0.68, zh: "新的世界向你打开了～", en: "A new world is opening up to you..." },
+
+            { progress: 0.82, zh: "恭喜你！雾散了，世界豁然开朗～", en: "Congratulations! The mist has cleared, the world is crystal clear!" }
+        ];
+
+        // ==================== 对话框函数 ====================
+
+        function getRandomSafePosition() {
+
+            const positions = [
+
+                { top: '40px', left: '40px' },
+
+                { top: '40px', right: '40px' },
+
+                { bottom: '40px', left: '40px' },
+
+                { bottom: '40px', right: '40px' },
+
+                { top: '50%', left: '40px', transform: 'translateY(-50%)' },
+
+                { top: '50%', right: '40px', transform: 'translateY(-50%)' }
+            ];
+
+            return positions[Math.floor(Math.random() * positions.length)];
+        }
+
+        function showDialog(zh, en) {
+
+            const overlay = document.getElementById('dialogOverlay');
+
+            const dialogBox = document.getElementById('dialogBox');
+
+            const titleEl = document.getElementById('dialogTitle');
+
+            const subtitleEl = document.getElementById('dialogSubtitle');
+
+            titleEl.textContent = zh;
+
+            subtitleEl.textContent = en;
+
+            const pos = getRandomSafePosition();
+
+            dialogBox.style.transform = pos.transform || 'none';
+
+            dialogBox.style.top = pos.top || 'auto';
+
+            dialogBox.style.bottom = pos.bottom || 'auto';
+
+            dialogBox.style.left = pos.left || 'auto';
+
+            dialogBox.style.right = pos.right || 'auto';
+
+            overlay.classList.add('active');
+
+            setTimeout(() => {
+
+                overlay.classList.remove('active');
+
+            }, 6000);
+        }
+
+        function checkProgress() {
+
+            if (!gameStarted || !fogImageData) return;
+
+            const currentImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+            let erasedPixels = 0;
+
+            for (let i = 3; i < fogImageData.data.length; i += 4) {
+
+                const originalAlpha = fogImageData.data[i];
+
+                const currentAlpha = currentImageData.data[i];
+
+                if (originalAlpha > 0 && currentAlpha === 0) {
+
+                    erasedPixels++;
+                }
+            }
+
+            const totalFogPixels = fogImageData.data.length / 4;
+
+            const progress = erasedPixels / totalFogPixels;
+
+            dialogConfig.forEach((dialog, index) => {
+
+                if (progress >= dialog.progress && !dialogShown.has(index)) {
+
+                    showDialog(dialog.zh, dialog.en);
+
+                    dialogShown.add(index);
+                }
+            });
+
+            /* ==================== 75% 显示 NEXT ==================== */
+
+            if(progress >= 0.75 && !nextUIShown){
+
+                nextUIShown = true;
+
+                document
+                .getElementById('nextUI')
+                .classList.add('show');
+            }
+        }
+
+        // ==================== 视频处理 ====================
+
+        const video = document.getElementById('introVideo');
+
+        const bgVideo = document.getElementById('bgVideo');
+
+        const videoContainer = document.getElementById('videoContainer');
+
+        video.addEventListener('ended', () => {
+
+            videoContainer.classList.add('hidden');
+
+            gameStarted = true;
+
+            bgVideo.play();
+
+            animate();
+        });
+
+        video.addEventListener('error', () => {
+
+            console.log('视频加载失败，直接开始游戏');
+
+            videoContainer.classList.add('hidden');
+
+            gameStarted = true;
+
+            bgVideo.play();
+
+            animate();
+        });
+
+        video.play().catch(() => {
+
+            console.log('自动播放失败');
+        });
+
+        // ==================== Canvas 游戏 ====================
+
+        function resizeCanvas() {
+
+            canvas.width = window.innerWidth;
+
+            canvas.height = window.innerHeight;
+
+            drawFog();
+        }
+
+        function drawFog() {
+
+            const img = new Image();
+
+            img.onload = function() {
+
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                ctx.fillStyle = 'rgba(100, 120, 140, 0.15)';
+
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                fogImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            };
+
+            img.src = './images/lake1.jpg';
+        }
+
+        function hasFogAt(x, y) {
+
+            if (!fogImageData) return false;
+
+            if (x < 0 || y < 0 || x >= canvas.width || y >= canvas.height) return false;
+
+            const index = (Math.floor(y) * canvas.width + Math.floor(x)) * 4;
+
+            const alpha = fogImageData.data[index + 3];
+
+            return alpha > 0;
+        }
+
+        function drawBrush(x, y) {
+
+            if (hasFogAt(x, y)) {
+
+                const gradient = ctx.createRadialGradient(x, y, 0, x, y, brushSize);
+
+                gradient.addColorStop(0, 'rgba(0, 0, 0, 1)');
+
+                gradient.addColorStop(0.7, 'rgba(0, 0, 0, 0.6)');
+
+                gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+
+                ctx.globalCompositeOperation = 'destination-out';
+
+                ctx.fillStyle = gradient;
+
+                ctx.beginPath();
+
+                ctx.arc(x, y, brushSize, 0, Math.PI * 2);
+
+                ctx.fill();
+
+                ctx.globalCompositeOperation = 'source-over';
+
+                createDroplets(x, y);
+            }
+        }
+
+        function drawLineBrush(x0, y0, x1, y1) {
+
+            const distance = Math.hypot(x1 - x0, y1 - y0);
+
+            const steps = Math.ceil(distance);
+
+            for (let i = 0; i <= steps; i++) {
+
+                const x = x0 + (x1 - x0) * (i / steps);
+
+                const y = y0 + (y1 - y0) * (i / steps);
+
+                if (hasFogAt(x, y)) {
+
+                    const gradient = ctx.createRadialGradient(x, y, 0, x, y, brushSize);
+
+                    gradient.addColorStop(0, 'rgba(0, 0, 0, 1)');
+
+                    gradient.addColorStop(0.7, 'rgba(0, 0, 0, 0.6)');
+
+                    gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+
+                    ctx.globalCompositeOperation = 'destination-out';
+
+                    ctx.fillStyle = gradient;
+
+                    ctx.beginPath();
+
+                    ctx.arc(x, y, brushSize, 0, Math.PI * 2);
+
+                    ctx.fill();
+
+                    ctx.globalCompositeOperation = 'source-over';
+
+                    if (i % 3 === 0) {
+
+                        createDroplets(x, y);
+                    }
+                }
+            }
+        }
+
+        function createDroplets(x, y) {
+
+            const dropletCount = Math.floor(Math.random() * 1) + 1;
+
+            for (let i = 0; i < dropletCount; i++) {
+
+                const size = Math.random() * 5 + 2;
+
+                const offsetX = (Math.random() - 0.5) * 30;
+
+                const startX = x + offsetX;
+
+                const startY = y - brushSize / 2;
+
+                const droplet = {
+
+                    x: startX,
+
+                    y: startY,
+
+                    size: size,
+
+                    vx: (Math.random() - 0.5) * 1.5,
+
+                    vy: Math.random() * 2.5 + 1.5,
+
+                    opacity: 0.8,
+
+                    life: 50
+                };
+
+                droplets.push(droplet);
+            }
+        }
+
+        function updateDroplets() {
+
+            dropletsContainer.innerHTML = '';
+
+            for (let i = droplets.length - 1; i >= 0; i--) {
+
+                const d = droplets[i];
+
+                d.x += d.vx;
+
+                d.y += d.vy;
+
+                d.vy += 0.15;
+
+                d.opacity = Math.max(0, (d.life / 50) * 0.8);
+
+                d.life--;
+
+                if (d.life > 0) {
+
+                    const dropletEl = document.createElement('div');
+
+                    dropletEl.className = 'droplet';
+
+                    dropletEl.style.left = d.x + 'px';
+
+                    dropletEl.style.top = d.y + 'px';
+
+                    dropletEl.style.width = d.size + 'px';
+
+                    dropletEl.style.height = d.size + 'px';
+
+                    dropletEl.style.opacity = d.opacity;
+
+                    dropletsContainer.appendChild(dropletEl);
+                }
+
+                if (d.life <= 0) {
+
+                    droplets.splice(i, 1);
+                }
+            }
+        }
+
+        function animate() {
+
+            if (gameStarted) {
+
+                updateDroplets();
+
+                checkProgress();
+            }
+
+            animationId = requestAnimationFrame(animate);
+        }
+
+        // ==================== 鼠标/触摸事件 ====================
+
+        let isDrawing = false;
+
+        canvas.addEventListener('mousedown', (e) => {
+
+            if (!gameStarted) return;
+
+            isDrawing = true;
+
+            lastX = e.clientX;
+
+            lastY = e.clientY;
+
+            drawBrush(e.clientX, e.clientY);
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+
+            if (!gameStarted || !isDrawing) return;
+
+            drawLineBrush(lastX, lastY, e.clientX, e.clientY);
+
+            lastX = e.clientX;
+
+            lastY = e.clientY;
+        });
+
+        canvas.addEventListener('mouseup', () => {
+
+            isDrawing = false;
+        });
+
+        canvas.addEventListener('mouseleave', () => {
+
+            isDrawing = false;
+        });
+
+        canvas.addEventListener('touchstart', (e) => {
+
+            if (!gameStarted) return;
+
+            e.preventDefault();
+
+            const touch = e.touches[0];
+
+            isDrawing = true;
+
+            lastX = touch.clientX;
+
+            lastY = touch.clientY;
+
+            drawBrush(touch.clientX, touch.clientY);
+        });
+
+        canvas.addEventListener('touchmove', (e) => {
+
+            if (!gameStarted || !isDrawing) return;
+
+            e.preventDefault();
+
+            const touch = e.touches[0];
+
+            drawLineBrush(lastX, lastY, touch.clientX, touch.clientY);
+
+            lastX = touch.clientX;
+
+            lastY = touch.clientY;
+        });
+
+        canvas.addEventListener('touchend', () => {
+
+            isDrawing = false;
+        });
+
+        // ==================== NEXT 跳转 ====================
+
+        document
+        .getElementById('nextButton')
+        .addEventListener('click', ()=>{
+
+            window.location.href = "scene4.html";
+
+        });
+
+        // ==================== 初始化 ====================
+
+        resizeCanvas();
+
+        animate();
+
+        window.addEventListener('resize', () => {
+
+            if (gameStarted) {
+
+                resizeCanvas();
+            }
+        });
+
+    </script>
+
+</body>
+</html>

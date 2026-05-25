@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>场景六 · 风筝</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
+  /* 视频容器：高度=屏幕高，宽度=高度×3（3:1视频），溢出隐藏 */
+  #video-wrap {
+    position: fixed; top: 0; left: 0;
+    width: 300vh;   /* 3:1视频：宽=高×3 */
+    height: 100vh;
+    z-index: 0; will-change: transform;
+    /* 初始居中：让视频中段对准屏幕 */
+    transform: translateX(0px);
+  }
+  #video-bg {
+    width: 100%; height: 100%;
+    object-fit: fill;  /* 不裁切，完整展示3:1视频 */
+    display: block;
+  }
+  #p5-canvas { position: fixed; top: 0; left: 0; z-index: 1; }
+  @import url('https://fonts.googleapis.com/css2?family=ZCOOL+XiaoWei&family=Noto+Serif+SC:wght@300;400&display=swap');
+</style>
+</head>
+<body>
+
+<div id="video-wrap">
+  <video id="video-bg" autoplay loop muted playsinline>
+    <source src="videos/黄昏.mp4" type="video/mp4">
+  </video>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+<script>
+
+// ── 视频视差 ──────────────────────────────────────────────────
+// 视频总宽 = 300vh，屏幕宽 = 100vw
+// 可滑动范围 = -(300vh - 100vw) ~ 0
+// 默认居中：translateX = -(300vh - 100vw) / 2
+const videoWrap = document.getElementById('video-wrap');
+let vpx = 0, vpxT = 0;
+
+function getVideoRange() {
+  // 视频像素宽 = window.innerHeight × 3
+  // 超出屏幕宽度 = 视频宽 - 屏幕宽
+  return window.innerHeight * 3 - window.innerWidth;  // 可滑动的总像素数
+}
+
+// 初始化：居中显示
+function initVideoPan() {
+  vpx = -getVideoRange() / 2;
+  vpxT = vpx;
+  videoWrap.style.transform = `translateX(${vpx}px)`;
+}
+initVideoPan();
+window.addEventListener('resize', initVideoPan);
+
+(function tick() {
+  vpx += (vpxT - vpx) * 0.025;
+  videoWrap.style.transform = `translateX(${vpx}px)`;
+  requestAnimationFrame(tick);
+})();
+
+// ── 配置 ──────────────────────────────────────────────────────
+const CFG = {
+  playerKiteImg : 'image6/黄风筝.png',
+  npcKiteImg    : 'image6/绿风筝.png',
+
+  kiteBaseW : 185,
+  kiteBaseH : 185,
+
+  perspYNear : 0.75, perspYFar : 0.05,
+  scaleNear  : 1.2,  scaleFar  : 0.38,
+  alphaNear  : 1.0,  alphaFar  : 0.58,
+
+  windStrength : 26,
+  windSpeed    : 0.00085,
+  mouseLerp    : 0.014,
+
+  // 线与风筝连接点：从中心往上偏移（占 kiteBaseH 比例，负=往上）
+  ropeAttachY : -0.10,   // 连接在风筝上方10%处
+
+  ropeSagMax  : 28,
+
+  // 飘带：2根，从风筝底端出发
+  ribbonSegs   : 20,          // 节点数（更多=更丝滑）
+  ribbonLen    : 110,         // 基准总长
+  ribbonStiff  : 0.18,
+  ribbonDamp   : 0.74,
+  ribbonSpread : 9,           // 左右展开（底端出发，稍微分开）
+  ribbonAttachY: 0.12,        // 挂点位置
+
+  npcRadius : 120, npcSpeed : 0.00042,
+
+  absorbRadius : 190, holdDuration : 200,
+  scatterOutDuration : 90, dialogDist : 230,
+
+  // 锚点X移动范围：整个3:1视频底部都可以到达
+  // 视频总宽 = 300vh，屏幕宽 = 100vw
+  // 锚点目标X = map(mouseX, 0,W,  -videoExtraW/2, W+videoExtraW/2)
+};
+
+// ── 文案 ──────────────────────────────────────────────────────
+const TEXT_GROUPS = [
+  { chars:['风','带','我','飞','向','很远'], sentence:'风带我飞向很远的地方', npc:null },
+  { chars:['线','的','那头','还有','一双','手'], sentence:'线的那头还有一双手', npc:null },
+  { chars:['黄昏','总是','最后','一个','离开','的'], sentence:'黄昏总是最后一个离开的颜色', npc:null },
+  { chars:['你','也是','来','找','什么','的'], sentence:'你也是来找什么的吗', npc:'我只是不想让线断', isDialog:true },
+];
+
+// ── p5 ────────────────────────────────────────────────────────
+new p5(function(p) {
+
+  let playerImg, npcImg;
+  let kitePos, kiteVel;
+  let npcPos, npcCenter, npcAngle = 0;
+
+  // 锚点：Y固定底部以下，X横跨整个3:1视频底部
+  let anchorSX, anchorSY;
+  let npcAnchorSX, npcAnchorSY;
+
+  // 2条飘带（每个风筝）
+  let playerRibbons, npcRibbons;
+
+  let windXS = 0, windYS = 0;
+
+  // 风筝朝向（平滑角度，跟随鼠标方向）
+  let kiteFacing  = 0;   // 当前朝向角（radians，相对正上方）
+  let npcFacing   = 0;   // NPC朝向
+
+  // NPC锚点独立随机游走
+  let npcWalkX = 0, npcWalkY = 0;   // 当前游走偏移（屏幕坐标）
+  let npcWalkTargetX = 0;
+  let npcWalkTimer = 0;
+
+  // 文字
+  let textState='scatter', groupIndex=0, stateTimer=0;
+  let scatterChars=[], sentenceAlpha=0, npcSentenceAlpha=0, npcDialogActive=false;
+  let sceneAlpha = 0;
+
+  // ──────────────────────────────────────────────────────────
+  p.preload = function() {
+    playerImg = p.loadImage(CFG.playerKiteImg);
+    npcImg    = p.loadImage(CFG.npcKiteImg);
+  };
+
+  p.setup = function() {
+    p.createCanvas(p.windowWidth, p.windowHeight).id('p5-canvas');
+    p.textFont('ZCOOL XiaoWei, Noto Serif SC, serif');
+
+    kitePos = p.createVector(p.width * 0.52, p.height * 0.28);
+    kiteVel = p.createVector(0, 0);
+
+    anchorSX  = p.width * 0.54;
+    anchorSY  = p.height + 12;
+    npcAnchorSX = p.width * 0.30;
+    npcAnchorSY = p.height + 12;
+    npcWalkTargetX = p.width * 0.30;
+
+    npcCenter = p.createVector(p.width * 0.28, p.height * 0.25);
+    npcPos    = npcCenter.copy();
+
+    playerRibbons = makeRibbons(kitePos);
+    npcRibbons    = makeRibbons(npcPos);
+
+    initScatterChars(groupIndex);
+  };
+
+  // ──────────────────────────────────────────────────────────
+  p.draw = function() {
+    p.clear();
+    if (sceneAlpha < 255) sceneAlpha = p.min(sceneAlpha + 2, 255);
+    p.drawingContext.globalAlpha = sceneAlpha / 255;
+
+    let mx = p.mouseX / p.width;
+    let my = p.mouseY / p.height;
+
+    // 视频平移：鼠标从左到右，视频从右段滑到左段
+    // vpxT 范围：0（看最左）~ -(300vh - 100vw)（看最右）
+    let videoRange = getVideoRange();
+    vpxT = -(mx * videoRange);   // 鼠标左=0，鼠标右=最大左移
+
+    // 风
+    let t = p.frameCount;
+    let wx = p.sin(t * CFG.windSpeed) * CFG.windStrength
+           + p.sin(t * CFG.windSpeed * 2.1) * CFG.windStrength * 0.35;
+    let wy = p.sin(t * CFG.windSpeed * 1.6) * CFG.windStrength * 0.28;
+    windXS = p.lerp(windXS, wx, 0.04);
+    windYS = p.lerp(windYS, wy, 0.04);
+
+    // ── 锚点X：鼠标在屏幕上的X位置就是锚点（视频跟着动，所以视觉一致）
+    // 视频和锚点都跟鼠标比例同步，视觉上锚点始终在鼠标正下方
+    let targetAX = p.lerp(mx * p.width, p.width * 0.54, 0.15);
+    anchorSX = p.lerp(anchorSX, targetAX, 0.06);
+
+    // NPC锚点：独立随机游走
+    npcWalkTimer++;
+    if (npcWalkTimer > 180 + Math.floor(Math.random()*120)) {
+      // 每3~5秒换一个新目标位置（在屏幕宽度范围内随机）
+      npcWalkTargetX = p.random(p.width * 0.05, p.width * 0.55);
+      npcWalkTimer = 0;
+    }
+    npcAnchorSX = p.lerp(npcAnchorSX, npcWalkTargetX, 0.008);  // 极缓慢移动
+
+    updateKite();
+    updateNPC();
+    updateRibbons(playerRibbons, kitePos, windXS,       windYS,       kiteFacing);
+    updateRibbons(npcRibbons,    npcPos,  windXS * 0.8, windYS * 0.8, npcFacing);
+    updateTextSystem();
+
+    // 深度排序
+    [{npc:true,y:npcPos.y},{npc:false,y:kitePos.y}]
+      .sort((a,b)=>a.y-b.y)
+      .forEach(item => {
+        if (item.npc) drawScene(npcAnchorSX, npcAnchorSY, npcPos,  npcFacing,   npcImg,    npcRibbons,    true);
+        else          drawScene(anchorSX,    anchorSY,    kitePos, kiteFacing,  playerImg, playerRibbons, false);
+      });
+
+    drawTextLayer();
+  };
+
+  // ── 风筝物理 + 朝向 ─────────────────────────────────────────
+  function updateKite() {
+    let tx = p.lerp(p.mouseX, p.width*0.52, 0.18) + windXS*1.2;
+    let ty = p.lerp(p.mouseY, p.height*0.26, 0.22) + windYS*0.6;
+    tx = p.constrain(tx, p.width*0.06, p.width*0.94);
+    ty = p.constrain(ty, p.height*0.05, p.height*0.70);
+    kiteVel.x = (tx - kitePos.x) * CFG.mouseLerp;
+    kiteVel.y = (ty - kitePos.y) * CFG.mouseLerp;
+    kitePos.add(kiteVel);
+
+    // 朝向：根据速度方向（鼠标移动方向）计算目标角
+    // 速度足够大时才更新朝向，避免静止时乱转
+    let speed = p.sqrt(kiteVel.x*kiteVel.x + kiteVel.y*kiteVel.y);
+    if (speed > 0.3) {
+      // atan2 从正右方算，我们想从正上方算，所以偏移 -HALF_PI
+      let targetFacing = -(p.atan2(kiteVel.y, kiteVel.x) - p.HALF_PI);
+      // 限制最大倾斜角（不要翻转超过45度）
+      targetFacing = p.constrain(targetFacing, -p.PI * 0.35, p.PI * 0.35);
+      // 平滑插值（用角度差最短路径）
+      let diff = targetFacing - kiteFacing;
+      // 规范化到 -PI ~ PI
+      while (diff >  p.PI) diff -= p.TWO_PI;
+      while (diff < -p.PI) diff += p.TWO_PI;
+      kiteFacing += diff * 0.06;
+    } else {
+      // 静止时缓慢回正
+      kiteFacing *= 0.95;
+    }
+  }
+
+  function updateNPC() {
+    let prevX = npcPos.x, prevY = npcPos.y;
+    npcAngle += CFG.npcSpeed * 60;
+    npcPos.x = npcCenter.x + p.sin(npcAngle)     * CFG.npcRadius;
+    npcPos.y = npcCenter.y + p.sin(npcAngle * 2) * CFG.npcRadius * 0.48;
+
+    // NPC朝向：跟随自身运动方向
+    let dvx = npcPos.x - prevX, dvy = npcPos.y - prevY;
+    let spd = p.sqrt(dvx*dvx + dvy*dvy);
+    if (spd > 0.05) {
+      let targetFacing = -(p.atan2(dvy, dvx) - p.HALF_PI);
+      targetFacing = p.constrain(targetFacing, -p.PI * 0.3, p.PI * 0.3);
+      let diff = targetFacing - npcFacing;
+      while (diff >  p.PI) diff -= p.TWO_PI;
+      while (diff < -p.PI) diff += p.TWO_PI;
+      npcFacing += diff * 0.04;
+    } else {
+      npcFacing *= 0.96;
+    }
+  }
+
+  // ── 透视 ────────────────────────────────────────────────────
+  function getPerspective(posY) {
+    let t = p.map(posY, p.height*CFG.perspYFar, p.height*CFG.perspYNear, 0, 1, true);
+    return {
+      scale : p.lerp(CFG.scaleFar, CFG.scaleNear, t),
+      alpha : p.lerp(CFG.alphaFar, CFG.alphaNear, t),
+      sw    : p.lerp(0.7, 2.1, t),
+      t,
+    };
+  }
+
+  // ── 飘带：2根，从风筝底端左右各一 ──────────────────────────
+  function makeRibbons(kiteP) {
+    return [-1, 1].map(side => {
+      let nodes = [];
+      for (let i = 0; i <= CFG.ribbonSegs; i++) {
+        nodes.push({ x:kiteP.x + side*CFG.ribbonSpread, y:kiteP.y, vx:0, vy:0 });
+      }
+      return { side, nodes };
+    });
+  }
+
+  function updateRibbons(ribbons, kiteP, wx, wy, facing) {
+    let persp  = getPerspective(kiteP.y);
+    let segLen = (CFG.ribbonLen * persp.scale) / CFG.ribbonSegs;
+
+    ribbons.forEach(rb => {
+      let nodes = rb.nodes;
+      // 挂点：在风筝局部坐标系，朝向的反方向（facing + PI）
+      let localX = rb.side * CFG.ribbonSpread * persp.scale;
+      let localY = CFG.kiteBaseH * persp.scale * Math.abs(CFG.ribbonAttachY);
+      // 反向：用 -facing 旋转 localY，使飘带从风筝背面飘出
+      let backFacing = facing + Math.PI;
+      let cosF = Math.cos(backFacing), sinF = Math.sin(backFacing);
+      // side偏移用原始朝向的垂直方向
+      let cosO = Math.cos(facing), sinO = Math.sin(facing);
+      nodes[0].x = kiteP.x + localX * cosO + localY * sinF;
+      nodes[0].y = kiteP.y + localX * sinO - localY * cosF;
+
+      for (let i = 1; i <= CFG.ribbonSegs; i++) {
+        let n    = nodes[i];
+        let prev = nodes[i - 1];
+
+        // 风力 + 重力 + 湍流扰动
+        let turb = p.noise(i * 0.4, p.frameCount * 0.012 + rb.side) * 2 - 1;
+        n.vx += wx * 0.075 + turb * 0.5;
+        n.vy += 0.22 + wy * 0.03 + turb * 0.1;
+
+        // 弹性约束
+        let dx = n.x - prev.x, dy = n.y - prev.y;
+        let dist = p.sqrt(dx*dx + dy*dy) || 0.001;
+        let diff = (dist - segLen) / dist;
+        n.x -= dx * diff * CFG.ribbonStiff;
+        n.y -= dy * diff * CFG.ribbonStiff;
+
+        n.vx *= CFG.ribbonDamp;
+        n.vy *= CFG.ribbonDamp;
+        n.x  += n.vx;
+        n.y  += n.vy;
+      }
+    });
+  }
+
+  // 华丽飘带绘制：渐变色 + 变宽 + 光晕
+  function drawRibbons(ribbons, kiteP, isNpc, facing) {
+    let persp = getPerspective(kiteP.y);
+
+    ribbons.forEach(rb => {
+      let nodes = rb.nodes;
+      let n     = CFG.ribbonSegs;
+
+      for (let i = 0; i < n; i++) {
+        let tRatio = i / n;                        // 0=根部 1=尾部
+        let tNext  = (i + 1) / n;
+
+        // 线宽：根部宽、尾部细
+        let sw = p.lerp(3.8, 0.4, tRatio) * persp.scale;
+
+        // 透明度：根部实、尾部透
+        let a  = p.lerp(230, 0, tRatio * tRatio) * persp.alpha;
+
+        // 渐变色（暖金 → 亮白 → 消散，NPC用冷绿）
+        let r, g, b;
+        if (!isNpc) {
+          // 黄风筝：暖金渐变
+          r = p.lerp(255, 255, tRatio);
+          g = p.lerp(200, 240, tRatio);
+          b = p.lerp(80,  200, tRatio);
+        } else {
+          // 绿风筝：冷青绿渐变
+          r = p.lerp(160, 200, tRatio);
+          g = p.lerp(230, 255, tRatio);
+          b = p.lerp(180, 230, tRatio);
+        }
+
+        p.push();
+        p.noFill();
+        p.strokeWeight(sw);
+        p.stroke(r, g, b, a);
+
+        // 光晕叠加：在根部加发光描边
+        if (tRatio < 0.35) {
+          p.drawingContext.shadowColor = isNpc
+            ? `rgba(160,240,200,${0.5 * (1 - tRatio / 0.35) * persp.alpha})`
+            : `rgba(255,210,80,${0.6 * (1 - tRatio / 0.35) * persp.alpha})`;
+          p.drawingContext.shadowBlur = 8;
+        }
+
+        p.line(nodes[i].x, nodes[i].y, nodes[i+1].x, nodes[i+1].y);
+        p.drawingContext.shadowBlur = 0;
+        p.pop();
+      }
+    });
+  }
+
+  // ── 线绳 ────────────────────────────────────────────────────
+  function drawRope(bx, by, kiteP, persp, facing) {
+    // 连接点：随风筝朝向旋转
+    let localY = CFG.kiteBaseH * persp.scale * CFG.ropeAttachY;
+    let attachX = kiteP.x + localY * p.sin(facing);   // 旋转后的X分量
+    let attachY = kiteP.y + localY * p.cos(facing);   // 旋转后的Y分量
+
+    // 弧度：只有风大时才微弯
+    let sag  = p.map(Math.abs(windXS), 0, CFG.windStrength, 0, CFG.ropeSagMax, true) * Math.sign(windXS);
+    let midX = (bx + attachX) * 0.5 + sag;
+    let midY = (by + attachY) * 0.5 - 6;
+
+    // 线绳：分段绘制，锚点端（底部）粗 → 风筝端（顶部）细，固定不变
+    let ropeSegs = 20;
+    p.push();
+    p.noFill();
+    for (let i = 0; i < ropeSegs; i++) {
+      let t0 = i / ropeSegs;
+      let t1 = (i + 1) / ropeSegs;
+      // 贝塞尔采样
+      let x0 = bx*(1-t0)*(1-t0) + midX*2*t0*(1-t0) + attachX*t0*t0;
+      let y0 = by*(1-t0)*(1-t0) + midY*2*t0*(1-t0) + attachY*t0*t0;
+      let x1 = bx*(1-t1)*(1-t1) + midX*2*t1*(1-t1) + attachX*t1*t1;
+      let y1 = by*(1-t1)*(1-t1) + midY*2*t1*(1-t1) + attachY*t1*t1;
+      // t0=0 锚点端粗，t0=1 风筝端细
+      let sw = p.lerp(3.3, 0.2, t0);
+      let alpha = 170 * persp.alpha;
+      p.stroke(240, 235, 225, alpha);
+      p.strokeWeight(sw);
+      p.line(x0, y0, x1, y1);
+    }
+    p.pop();
+  }
+
+  // ── 统一绘制 ────────────────────────────────────────────────
+  function drawScene(bx, by, kiteP, facing, img, ribbons, isNpc) {
+    let persp = getPerspective(kiteP.y);
+
+    drawRope(bx, by, kiteP, persp, facing);
+    drawRibbons(ribbons, kiteP, isNpc, facing);
+
+    let w = CFG.kiteBaseW * persp.scale;
+    let h = CFG.kiteBaseH * persp.scale;
+    p.push();
+    p.drawingContext.globalAlpha *= persp.alpha;
+    p.translate(kiteP.x, kiteP.y);
+    p.rotate(facing);   // 整体朝向旋转
+    p.imageMode(p.CENTER);
+    p.image(img, 0, 0, w, h);
+    p.pop();
+  }
+
+  // ── 文字系统 ────────────────────────────────────────────────
+  function initScatterChars(gi) {
+    let g = TEXT_GROUPS[gi];
+    scatterChars = g.chars.map((ch, i) => {
+      let x = p.random(p.width*0.06, p.width*0.90);
+      let y = p.random(p.height*0.05, p.height*0.60);
+      return { ch, x, y, targetX:x, targetY:y, alpha:0,
+               floatOffset:p.random(p.TWO_PI), floatSpeed:p.random(0.007,0.016),
+               size:p.random(17,27), enterDelay:i*28, scatterVX:0, scatterVY:0 };
+    });
+    stateTimer=0; sentenceAlpha=0; npcSentenceAlpha=0; npcDialogActive=false;
+  }
+
+  function updateTextSystem() {
+    let g = TEXT_GROUPS[groupIndex];
+    stateTimer++;
+    if (textState==='scatter') {
+      scatterChars.forEach(c => {
+        if (stateTimer > c.enterDelay) c.alpha = p.min(c.alpha+2.5, 150);
+        c.y += p.sin(p.frameCount*c.floatSpeed+c.floatOffset)*0.22;
+      });
+      if (scatterChars.some(c=>p.dist(kitePos.x,kitePos.y,c.x,c.y)<CFG.absorbRadius) && stateTimer>100) {
+        let sx = p.constrain(kitePos.x-g.sentence.length*12, 40, p.width-g.sentence.length*27);
+        let sy = p.constrain(kitePos.y-55, 40, p.height-100);
+        scatterChars.forEach((c,i)=>{ c.targetX=sx+i*26; c.targetY=sy; });
+        textState='absorbing'; stateTimer=0;
+      }
+    } else if (textState==='absorbing') {
+      let done=true;
+      scatterChars.forEach(c => {
+        c.x=p.lerp(c.x,c.targetX,0.08); c.y=p.lerp(c.y,c.targetY,0.08);
+        c.alpha=p.lerp(c.alpha,255,0.06);
+        if (p.dist(c.x,c.y,c.targetX,c.targetY)>4) done=false;
+      });
+      if (done||stateTimer>100){ textState='sentence'; stateTimer=0; }
+    } else if (textState==='sentence') {
+      sentenceAlpha=p.min(sentenceAlpha+4,255);
+      if (g.isDialog) {
+        if (p.dist(kitePos.x,kitePos.y,npcPos.x,npcPos.y)<CFG.dialogDist && !npcDialogActive) npcDialogActive=true;
+        if (npcDialogActive) npcSentenceAlpha=p.min(npcSentenceAlpha+3,220);
+      }
+      if (stateTimer>CFG.holdDuration){ textState='scattering'; stateTimer=0; }
+    } else if (textState==='scattering') {
+      if (stateTimer===1) scatterChars.forEach(c=>{
+        let a=p.random(p.TWO_PI);
+        c.scatterVX=p.cos(a)*p.random(2,5); c.scatterVY=p.sin(a)*p.random(1.5,4)-1;
+      });
+      scatterChars.forEach(c=>{
+        c.x+=c.scatterVX; c.y+=c.scatterVY;
+        c.scatterVX*=0.95; c.scatterVY*=0.95;
+        c.alpha=p.max(c.alpha-3.5,0);
+      });
+      sentenceAlpha=p.max(sentenceAlpha-5,0);
+      npcSentenceAlpha=p.max(npcSentenceAlpha-5,0);
+      if (stateTimer>CFG.scatterOutDuration){
+        groupIndex=(groupIndex+1)%TEXT_GROUPS.length;
+        textState='scatter'; initScatterChars(groupIndex);
+      }
+    }
+  }
+
+  function drawTextLayer() {
+    let g = TEXT_GROUPS[groupIndex];
+    if (textState==='scatter'||textState==='absorbing') {
+      scatterChars.forEach(c=>{
+        p.push(); p.fill(255,245,220,c.alpha); p.noStroke();
+        p.textSize(c.size); p.textAlign(p.CENTER,p.CENTER);
+        p.drawingContext.shadowColor='rgba(255,200,100,0.55)'; p.drawingContext.shadowBlur=10;
+        p.text(c.ch,c.x,c.y); p.drawingContext.shadowBlur=0; p.pop();
+      });
+    }
+    if (textState==='sentence'||textState==='scattering') {
+      let sx=p.constrain(kitePos.x-g.sentence.length*12,40,p.width-g.sentence.length*27);
+      let sy=p.constrain(kitePos.y+72,60,p.height-80);
+      p.push(); p.fill(255,245,220,sentenceAlpha); p.noStroke();
+      p.textSize(20); p.textAlign(p.LEFT,p.CENTER); p.textFont('Noto Serif SC, serif');
+      p.drawingContext.shadowColor='rgba(255,175,75,0.55)'; p.drawingContext.shadowBlur=20;
+      g.sentence.split('').forEach((ch,i)=>p.text(ch,sx+i*24,sy));
+      p.drawingContext.shadowBlur=0; p.pop();
+
+      if (g.isDialog && npcDialogActive) {
+        let nx=p.constrain(npcPos.x-g.npc.length*11,20,p.width-g.npc.length*25);
+        let ny=npcPos.y+62;
+        p.push(); p.fill(200,240,210,npcSentenceAlpha); p.noStroke();
+        p.textSize(18); p.textFont('Noto Serif SC, serif');
+        p.drawingContext.shadowColor='rgba(140,220,155,0.5)'; p.drawingContext.shadowBlur=14;
+        g.npc.split('').forEach((ch,i)=>p.text(ch,nx+i*22,ny));
+        p.drawingContext.shadowBlur=0; p.pop();
+      }
+    }
+  }
+
+  p.windowResized = function() {
+    p.resizeCanvas(p.windowWidth, p.windowHeight);
+    anchorSX=p.width*0.54; anchorSY=p.height+12;
+    npcAnchorSX=p.width*0.30; npcAnchorSY=p.height+12;
+    npcCenter.set(p.width*0.28, p.height*0.25);
+  };
+
+}); // end p5
+</script>
+</body>
+</html>

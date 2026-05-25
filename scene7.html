@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>场景7 - 变色龙</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    background: #000;
+    font-family: 'KaiTi', '楷体', serif;
+  }
+
+  #bg-video {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 0;
+  }
+
+  #scene {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+  }
+
+  #chameleon-wrap {
+    position: absolute;
+    right: 25%;
+    top: 14%;
+    width: 190px;
+    height: 230px;
+    cursor: pointer;
+    z-index: 10;
+  }
+
+  #chameleon {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    animation: camouflage 4s ease-in-out infinite;
+    transition: opacity 0.4s;
+  }
+
+  @keyframes camouflage {
+    0%   { opacity: 0.08; }
+    30%  { opacity: 0.55; }
+    50%  { opacity: 0.18; }
+    70%  { opacity: 0.72; }
+    100% { opacity: 0.08; }
+  }
+
+  #chameleon-wrap:hover #chameleon {
+    animation: none;
+    opacity: 1;
+  }
+
+  .ripple {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(120,255,120,0.35);
+    width: 10px; height: 10px;
+    transform: translate(-50%,-50%) scale(0);
+    animation: ripple-out 0.7s ease-out forwards;
+    pointer-events: none;
+    z-index: 20;
+  }
+  @keyframes ripple-out {
+    to { transform: translate(-50%,-50%) scale(28); opacity: 0; }
+  }
+
+  /* ── 门点击区域 ── */
+  #door-click {
+    position: absolute;
+    left: 32%;
+    top: 23%;
+    width: 13%;
+    height: 49%;
+    cursor: pointer;
+    z-index: 5;
+  }
+
+  #chameleon-hint {
+    position: absolute;
+    right: 27%;
+    top: 18%;
+    padding: 6px 16px;
+    background: rgba(19, 15, 15, 0.404);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    color: rgba(255, 255, 255, 0.95);
+    font-size: 0.85rem;
+    font-family: sans-serif;
+    pointer-events: none;
+    z-index: 6;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+  }
+  #door-hint {
+    position: fixed;
+    bottom: 45%;
+    left: 48%;
+    transform: translateX(-50%);
+    padding: 6px 16px;
+    background: rgba(19, 15, 15, 0.404);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    color: rgba(255, 255, 255, 0.95);
+    font-size: 0.85rem;
+    font-family: sans-serif;
+    pointer-events: none;
+    z-index: 6;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+    animation: none;
+    transition: opacity 1.5s ease-out;
+  }
+  #transition-mask {
+    position: fixed;
+    inset: 0;
+    background: #fff;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 100;
+    transition: opacity 0.6s ease;
+  }
+  #transition-mask.active {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  /* ── 新场景：sketch505虫子世界 ── */
+  #next-scene {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    background: url('image7/树干.png') center center / cover no-repeat;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s ease;
+  }
+  #next-scene.visible {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  #worm-canvas {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: transparent;
+  }
+
+  #back-btn {
+    position: absolute;
+    top: 30px;
+    left: 30px;
+    z-index: 300;
+    padding: 8px 22px;
+    background: rgba(255, 255, 255, 0.25);
+    color: white;
+    border: 2px solid rgba(255, 255, 255, 0.6);
+    border-radius: 10px;
+    font-family: "Noto Serif SC", serif;
+    font-size: 16px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.4s 0.3s, background 0.3s;
+  }
+  #next-scene.visible #back-btn { opacity: 1; }
+  /* ── 右上角已变绿计数 ── */
+  #green-counter {
+    position: absolute;
+    top: 30px;
+    right: 30px;
+    z-index: 300;
+    padding: 6px 16px;
+    background: rgba(255, 255, 255, 0.2);
+    border: 1.5px solid rgba(255, 255, 255, 0.6);
+    border-radius: 10px;
+    color: #fff;
+    font-family: "Noto Serif SC", serif;
+    font-size: 15px;
+    letter-spacing: 1px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.4s 0.3s;
+  }
+  #next-scene.visible #green-counter { opacity: 1; }
+
+  /* ── scene4风格文字框 ── */
+  .worm-caption {
+    position: absolute;
+    padding: 10px 24px;
+    text-align: center;
+    background: #FAF0C8;
+    border: 1px solid #1B2A4A;
+    border-radius: 0;
+    z-index: 310;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(16px);
+    transition: opacity 0.8s ease, transform 0.8s ease;
+  }
+  .worm-caption.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .worm-caption.hiding {
+    opacity: 0;
+    transition: opacity 0.6s ease;
+  }
+  #caption-bl { bottom: 10%; left: 5%; }
+  #caption-br { bottom: 10%; right: 5%; }
+  .worm-caption .cn {
+    color: #1B2A4A;
+    font: 500 15px/1.5 'Georgia', '宋体', serif;
+    letter-spacing: 3px;
+  }
+  .worm-caption .en {
+    color: #1B2A4A;
+    font: italic 11px/1.3 'Georgia', serif;
+    letter-spacing: 1.5px;
+    margin-top: 2px;
+    opacity: 0.6;
+  }
+</style>
+</head>
+<body>
+
+<video id="bg-video" autoplay muted loop playsinline>
+  <source src="videos/背景图.mp4" type="video/mp4">
+</video>
+
+<div id="scene">
+  <div id="chameleon-wrap" onclick="enterNextScene(event)">
+    <img id="chameleon" src="image7/变色龙.png" alt="变色龙"/>
+  </div>
+  <div id="door-click" onclick="goToScene6()"></div>
+  <div id="door-hint">next</div>
+  <div id="chameleon-hint">变色龙？</div>
+</div>
+
+<div id="transition-mask"></div>
+
+<div id="next-scene">
+  <canvas id="worm-canvas"></canvas>
+  <button id="back-btn" onclick="goBack()">返回</button>
+  <div id="green-counter">已吃掉：<span id="green-count">0</span></div>
+  <div id="caption-bl" class="worm-caption">
+    <div class="cn">我是变色龙，我要把你们这些虫子统统吃掉。</div>
+    <div class="en">I am the chameleon — and I will devour every last one of you.</div>
+  </div>
+  <div id="caption-br" class="worm-caption">
+    <div class="cn">我也想要隐身的能力，那样就可以天天逃出去玩了。</div>
+    <div class="en">I wish I could turn invisible too — then I'd sneak out to play every single day.</div>
+  </div>
+</div>
+
+<!-- Three.js r128 CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+<script>
+// ─────────────────────────────────────────────
+// 工具函数（对应 Util / Func）
+// ─────────────────────────────────────────────
+const U = {
+  random: (min, max) => Math.random() * (max - min) + min,
+  random2: (min, max) => {
+    let r = Math.random() * (max - min) + min;
+    return Math.random() < 0.5 ? r : -r;
+  },
+  randomInt: (min, max) => Math.floor(Math.random() * (max - min + 1)) + min,
+  hit: (range) => U.randomInt(0, range - 1) === 0,
+  range: (val) => U.random(-val, val),
+  map: (num, toMin, toMax, fromMin, fromMax) => {
+    if (num <= fromMin) return toMin;
+    if (num >= fromMax) return toMax;
+    return (num - fromMin) * (toMax - toMin) / (fromMax - fromMin) + toMin;
+  },
+  sw: () => document.body.clientWidth,
+  sh: () => window.innerHeight,
+  radian: (deg) => deg * Math.PI / 180,
+  isXS: () => window.innerWidth <= 950,
+  val: (xs, lg) => U.isXS() ? xs : lg,
+};
+
+// ─────────────────────────────────────────────
+// GSAP-like 简易 tween（因为没有引入 gsap）
+// ─────────────────────────────────────────────
+const tweens = [];
+function tweenTo(obj, key, target, duration, easing, onComplete) {
+  const start = obj[key];
+  const startTime = performance.now();
+  const ms = duration * 1000;
+  tweens.push({ obj, key, start, target, startTime, ms, easing: easing || 'expo', onComplete });
+}
+function updateTweens(now) {
+  for (let i = tweens.length - 1; i >= 0; i--) {
+    const t = tweens[i];
+    let p = Math.min(1, (now - t.startTime) / t.ms);
+    // expo ease out
+    let ep = t.easing === 'expo' ? (p === 1 ? 1 : 1 - Math.pow(2, -10 * p)) : p;
+    t.obj[t.key] = t.start + (t.target - t.start) * ep;
+    if (p >= 1) {
+      if (t.onComplete) t.onComplete();
+      tweens.splice(i, 1);
+    }
+  }
+}
+function killTweens(obj, key) {
+  for (let i = tweens.length - 1; i >= 0; i--) {
+    if (tweens[i].obj === obj && tweens[i].key === key) tweens.splice(i, 1);
+  }
+}
+
+// ─────────────────────────────────────────────
+// 鼠标
+// ─────────────────────────────────────────────
+const mouse = { x: 99999, y: 99999, normalX: 0, normalY: 0 };
+window.addEventListener('mousemove', e => {
+  mouse.x = e.clientX;
+  mouse.y = e.clientY;
+  mouse.normalX = U.map(e.clientX, -1, 1, 0, window.innerWidth);
+  mouse.normalY = U.map(e.clientY, -1, 1, 0, window.innerHeight) * -1;
+});
+window.addEventListener('touchmove', e => {
+  if (e.touches.length) {
+    mouse.x = e.touches[0].clientX;
+    mouse.y = e.touches[0].clientY;
+    mouse.normalX = U.map(mouse.x, -1, 1, 0, window.innerWidth);
+    mouse.normalY = U.map(mouse.y, -1, 1, 0, window.innerHeight) * -1;
+  }
+}, { passive: true });
+
+// ─────────────────────────────────────────────
+// ToggleWorm（对应 ToggleMushi）
+// ─────────────────────────────────────────────
+class ToggleWorm {
+  constructor(scene) {
+    this.scene = scene;
+    this.c = 0;
+    this.isActive = false;
+    this.isHover = false;
+
+    this.dotPosRate = 0;         // 0=tail end, 1=head end
+
+    this.colorDefault = new THREE.Color(0xb8a898);
+    this.colorActive  = new THREE.Color(0x76d672);
+    this.colorBtn     = new THREE.Color(0xffffff);
+
+    this.size = 18;
+    this.speed = new THREE.Vector2(U.random2(0.5, 2), U.random2(0.5, 2));
+    this.interval = U.randomInt(30, 70);
+
+    this.basePos   = new THREE.Vector3(U.range(U.sw() * 0.5), U.range(U.sh() * 0.5), 0);
+    this.oldPos    = this.basePos.clone();
+    this.oldPosTg  = this.basePos.clone();
+
+    // 材质（共享给管、端点）
+    this.lineMat = new THREE.MeshBasicMaterial({ depthTest: false, color: this.colorDefault.clone(), transparent: true, opacity: 0.88 });
+    this.dotMat  = new THREE.MeshBasicMaterial({ depthTest: false, color: this.colorBtn, transparent: true, opacity: 0.95 });
+
+    // 端点圆
+    this.edges = [];
+    for (let i = 0; i < 2; i++) {
+      const m = new THREE.Mesh(new THREE.CircleGeometry(0.5, 32), this.lineMat);
+      scene.add(m);
+      this.edges.push(m);
+    }
+
+    // 白色滑块
+    this.dot = new THREE.Mesh(new THREE.CircleGeometry(0.5, 32), this.dotMat);
+    this.dot.renderOrder = 2;
+    scene.add(this.dot);
+
+    // 管线（先占位）
+    this.lineMesh = new THREE.Mesh(this._makeGeo(), this.lineMat);
+    this.lineMesh._worm = this;
+    scene.add(this.lineMesh);
+  }
+
+  setToggle(v) {
+    this.isActive = v;
+    killTweens(this, 'dotPosRate');
+    tweenTo(this, 'dotPosRate', v ? 1 : 0, 0.75, 'expo');
+  }
+
+  update() {
+    this.c++;
+
+    // 颜色插值
+    const col = this.colorDefault.clone().lerp(this.colorActive, this.dotPosRate);
+    this.lineMat.color.copy(col);
+
+    // 移动逻辑（完全还原 ToggleMushi._update）
+    if (this.c % this.interval === 0) {
+      this.oldPosTg.copy(this.basePos);
+    } else {
+      this.oldPosTg.x += this.speed.x * -0.2;
+      this.oldPosTg.y += this.speed.y * -0.2;
+    }
+    this.oldPos.x += (this.oldPosTg.x - this.oldPos.x) * 0.1;
+    this.oldPos.y += (this.oldPosTg.y - this.oldPos.y) * 0.1;
+
+    this.basePos.x += this.speed.x;
+    this.basePos.y += this.speed.y;
+
+    const hw = U.sw() * 0.5, hh = U.sh() * 0.5;
+    if (this.basePos.x > hw || this.basePos.x < -hw) this.speed.x *= -1;
+    if (this.basePos.y > hh || this.basePos.y < -hh) this.speed.y *= -1;
+    if (U.hit(100)) this.speed.x *= -1;
+    if (U.hit(100)) this.speed.y *= -1;
+
+    // 重建管线几何
+    this.lineMesh.geometry.dispose();
+    this.lineMesh.geometry = this._makeGeo();
+  }
+
+  _makeGeo() {
+    const arr = [];
+    arr.push(this.oldPos.clone());
+
+    const mid1 = this.oldPos.clone().lerp(this.basePos, 0.25);
+    const mid2 = this.oldPos.clone().lerp(this.basePos, 0.75);
+
+    const rad = U.radian(this.c * 5);
+    mid1.x += Math.sin(rad) * 5;
+    mid1.y += Math.cos(rad) * 10;
+    mid2.x += Math.sin(-rad) * 5;
+    mid2.y += Math.cos(-rad) * 10;
+
+    arr.push(mid1);
+    arr.push(mid2);
+    arr.push(this.basePos.clone());
+    arr.reverse(); // head first
+
+    const w = this.size;
+    const edgeSize = w * 1.75;
+    this.edges[0].scale.set(edgeSize, edgeSize, 1);
+    this.edges[1].scale.set(edgeSize, edgeSize, 1);
+    this.edges[0].position.set(arr[0].x, arr[0].y, 0);
+    this.edges[1].position.set(arr[arr.length - 1].x, arr[arr.length - 1].y, 0);
+
+    const btnSize = w * 1.5;
+    this.dot.scale.set(btnSize, btnSize, 1);
+
+    const curve = new THREE.CatmullRomCurve3(arr, false);
+    const geo = new THREE.TubeGeometry(curve, 20, w, 3, false);
+
+    const dotPos = curve.getPointAt(this.dotPosRate);
+    this.dot.position.set(dotPos.x, dotPos.y, 1);
+
+    return geo;
+  }
+
+  dispose() {
+    this.scene.remove(this.lineMesh);
+    this.scene.remove(this.dot);
+    this.edges.forEach(e => this.scene.remove(e));
+    this.lineMesh.geometry.dispose();
+    this.lineMat.dispose();
+    this.dotMat.dispose();
+  }
+}
+
+// ─────────────────────────────────────────────
+// 文字框 & 计数（全局）
+// ─────────────────────────────────────────────
+let greenCount = 0;
+let caption2Shown = false, caption3Shown = false;
+
+function showCaption(id, duration) {
+  duration = duration || 5000;
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.remove('hiding');
+  el.classList.add('visible');
+  setTimeout(function() {
+    el.classList.add('hiding');
+    setTimeout(function() { el.classList.remove('visible', 'hiding'); }, 700);
+  }, duration);
+}
+
+// ─────────────────────────────────────────────
+// Sketch505 主体
+// ─────────────────────────────────────────────
+let renderer, scene, camera, worms = [], raycaster, hoverMeshes = [];
+let sketch505Running = false;
+let animId = null;
+
+function initSketch505() {
+  const canvas = document.getElementById('worm-canvas');
+  const w = U.sw(), h = U.sh();
+
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: true });
+  renderer.setPixelRatio(window.devicePixelRatio || 1);
+  renderer.setSize(w, h);
+  renderer.setClearColor(0x000000, 0);
+
+  scene = new THREE.Scene();
+
+  // 正交相机（和原项目一致）
+  camera = new THREE.OrthographicCamera(-w/2, w/2, h/2, -h/2, -10000, 10000);
+  camera.position.set(0, 0, 1000);
+
+  raycaster = new THREE.Raycaster();
+
+  const num = 100;
+  for (let i = 0; i < num; i++) {
+    const worm = new ToggleWorm(scene);
+    worms.push(worm);
+    hoverMeshes.push(worm.lineMesh);
+  }
+
+  // 点击切换 + 计数 + 文字框触发
+  canvas.addEventListener('click', () => {
+    worms.forEach(w => {
+      if (w.isHover) {
+        const wasActive = w.isActive;
+        w.setToggle(!wasActive);
+        if (!wasActive) {
+          greenCount++;
+        } else {
+          greenCount = Math.max(0, greenCount - 1);
+        }
+        document.getElementById('green-count').textContent = greenCount;
+
+        if (greenCount >= 6 && !caption2Shown) {
+          caption2Shown = true;
+          showCaption('caption-br');
+        }
+        if (greenCount >= 20 && !caption3Shown) {
+          caption3Shown = true;
+          const el = document.getElementById('caption-bl');
+          el.querySelector('.cn').textContent = '我太厉害了，吃掉了这么多虫子！';
+          el.querySelector('.en').textContent = 'Look at me — I\'ve eaten so many of them!';
+          showCaption('caption-bl');
+        }
+      }
+    });
+  });
+
+  // resize
+  window.addEventListener('resize', onSketchResize);
+
+  sketch505Running = true;
+  loop();
+}
+
+function onSketchResize() {
+  if (!renderer) return;
+  const w = U.sw(), h = U.sh();
+  renderer.setSize(w, h);
+  camera.left = -w/2; camera.right = w/2;
+  camera.top = h/2;   camera.bottom = -h/2;
+  camera.updateProjectionMatrix();
+}
+
+function loop(now = 0) {
+  if (!sketch505Running) return;
+  animId = requestAnimationFrame(loop);
+
+  updateTweens(now);
+
+  // 射线检测悬停
+  worms.forEach(w => w.isHover = false);
+  const mx = U.map(mouse.x, -1, 1, 0, window.innerWidth);
+  const my = U.map(mouse.y, -1, 1, 0, window.innerHeight) * -1;
+  const ndc = new THREE.Vector2(
+    (mouse.x / window.innerWidth) * 2 - 1,
+    -(mouse.y / window.innerHeight) * 2 + 1
+  );
+  raycaster.setFromCamera(ndc, camera);
+  const hits = raycaster.intersectObjects(hoverMeshes);
+  let anyHover = false;
+  if (hits.length > 0) {
+    const worm = hits[0].object._worm;
+    if (worm) { worm.isHover = true; anyHover = true; }
+  }
+  document.body.style.cursor = anyHover ? 'pointer' : 'default';
+
+  worms.forEach(w => w.update());
+  renderer.render(scene, camera);
+}
+
+function destroySketch505() {
+  sketch505Running = false;
+  if (animId) cancelAnimationFrame(animId);
+  worms.forEach(w => w.dispose());
+  worms = []; hoverMeshes = [];
+  if (renderer) { renderer.dispose(); renderer = null; }
+  window.removeEventListener('resize', onSketchResize);
+  document.body.style.cursor = 'default';
+}
+
+function goToScene6() {
+  const mask = document.getElementById('transition-mask');
+  mask.style.background = '#000';
+  mask.classList.add('active');
+  setTimeout(() => {
+    window.location.href = 'scene6.html';
+  }, 600);
+}
+
+// ─────────────────────────────────────────────
+// 场景切换
+// ─────────────────────────────────────────────
+function enterNextScene(e) {
+  const wrap = document.getElementById('chameleon-wrap');
+  const rect = wrap.getBoundingClientRect();
+  const ripple = document.createElement('div');
+  ripple.className = 'ripple';
+  ripple.style.left = (e.clientX - rect.left) + 'px';
+  ripple.style.top  = (e.clientY - rect.top)  + 'px';
+  wrap.appendChild(ripple);
+  setTimeout(() => ripple.remove(), 800);
+
+  document.getElementById('transition-mask').classList.add('active');
+
+  setTimeout(() => {
+    document.getElementById('next-scene').classList.add('visible');
+    initSketch505();
+    setTimeout(() => {
+      document.getElementById('transition-mask').classList.remove('active');
+    }, 200);
+    // 1秒后显示左下角第一句话
+    setTimeout(() => {
+      showCaption('caption-bl', 5000);
+    }, 1000);
+  }, 500);
+}
+
+function goBack() {
+  document.getElementById('transition-mask').classList.add('active');
+  greenCount = 0;
+  caption2Shown = false;
+  caption3Shown = false;
+  document.getElementById('green-count').textContent = '0';
+  setTimeout(() => {
+    document.getElementById('next-scene').classList.remove('visible');
+    destroySketch505();
+    setTimeout(() => {
+      document.getElementById('transition-mask').classList.remove('active');
+    }, 300);
+  }, 400);
+}
+</script>
+</body>
+</html>
