@@ -256,7 +256,6 @@ body{
     margin-top:-60px;
 }
 
-/* 视差容器，GSAP 控制 y */
 .scene3-parallax{
     position:absolute;
     inset:0;
@@ -275,7 +274,6 @@ body{
     display:block;
 }
 
-/* 入场遮罩：从下往上揭开 */
 .scene3-mask{
     position:absolute;
     inset:0;
@@ -285,7 +283,6 @@ body{
     pointer-events:none;
 }
 
-/* 场景3提示文字 */
 .scene3-hint{
     position:absolute;
     bottom:56px;
@@ -315,6 +312,66 @@ body{
     color:rgba(229,221,212,0.35);
     margin-top:14px;
     text-transform:uppercase;
+}
+
+/* =========================
+   场景4 — Goddess
+   紧接 scene3，无大空白
+========================= */
+
+.scene4{
+    width:100%;
+    height:100vh;
+    position:relative;
+    overflow:hidden;
+    z-index:4;
+    /* 向上叠压 scene3，缩短视觉间距 */
+    margin-top:100px;
+}
+
+/* Frame 3.png 背景层 */
+.scene4-bg{
+    position:absolute;
+    inset:0;
+    background:url("./first.image/Frame 3.png") center center / cover no-repeat;
+    z-index:0;
+    /* 入场前从下方藏住 */
+    transform:translateY(60px);
+    opacity:0;
+}
+
+/* Three.js canvas */
+.scene4-canvas-wrap{
+    position:absolute;
+    inset:0;
+    z-index:1;
+    opacity:0;
+    transform:scale(1.04);
+}
+
+/* 入场遮罩：从底部向上收起 */
+.scene4-mask{
+    position:absolute;
+    inset:0;
+    background:#E5DDD4;
+    z-index:20;
+    transform-origin:bottom center;
+    pointer-events:none;
+}
+
+/* 白光跳转遮罩 */
+.scene4-flash{
+    position:absolute;
+    inset:0;
+    background:#ffffff;
+    opacity:0;
+    pointer-events:none;
+    z-index:99;
+    transition:opacity 0.25s ease;
+}
+
+.scene4-flash.active{
+    opacity:1;
 }
 
 </style>
@@ -377,21 +434,44 @@ body{
 
 <section class="scene3" id="scene3">
 
-    <!-- 视差层 -->
     <div class="scene3-parallax" id="scene3Parallax">
         <canvas class="scene3-canvas" id="fluidCanvas"></canvas>
     </div>
 
-    <!-- 入场遮罩 -->
     <div class="scene3-mask" id="scene3Mask"></div>
 
-    <!-- 提示 -->
     <div class="scene3-hint" id="scene3Hint">
         <span class="scene3-hint-main">标签之下，还有真实的我吗</span>
         <span class="scene3-hint-sub">move to reveal</span>
     </div>
 
 </section>
+
+<!-- =====================
+     场景4 — Goddess
+===================== -->
+
+<section class="scene4" id="scene4">
+
+    <!-- 背景图层 -->
+    <div class="scene4-bg" id="scene4Bg"></div>
+
+    <!-- 遮罩（入场用） -->
+    <div class="scene4-mask" id="scene4Mask"></div>
+
+    <!-- 白光跳转遮罩 -->
+    <div class="scene4-flash" id="scene4Flash"></div>
+
+    <!-- Three.js 挂载容器 -->
+    <div class="scene4-canvas-wrap" id="scene4CanvasWrap"></div>
+
+</section>
+
+<!-- =====================
+     Three.js（仅 scene4 用）
+===================== -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 
 <script>
 
@@ -526,19 +606,16 @@ window.addEventListener("scroll", onScroll);
    场景3 — GSAP ScrollTrigger 视差
 ========================= */
 
-/* 遮罩揭开 + 视差 */
 ScrollTrigger.create({
     trigger:"#scene3",
     start:"top bottom",
     end:"top top",
     onEnter:()=>{
-        /* 揭开遮罩 */
         gsap.to("#scene3Mask",{
             scaleY:0,
             duration:1.1,
             ease:"power3.inOut"
         });
-        /* 提示字淡入 */
         gsap.to("#scene3Hint",{
             opacity:1,
             delay:1.2,
@@ -547,7 +624,6 @@ ScrollTrigger.create({
     }
 });
 
-/* 视差：滚动时，parallax 层往上偏移（视差速度 < 1） */
 gsap.to("#scene3Parallax",{
     y: "-12%",
     ease:"none",
@@ -560,7 +636,215 @@ gsap.to("#scene3Parallax",{
 });
 
 /* =========================
-   WebGL Fluid Reveal
+   场景4 — Goddess 入场动画
+   时序：
+   1. 背景从下滑入 + 遮罩从底部收起（像帷幕拉起）
+   2. canvas wrap 淡入并轻微缩放还原
+   3. 女神模型已在 Three.js 里等待，从背面开始
+========================= */
+
+ScrollTrigger.create({
+    trigger:"#scene4",
+    start:"top 85%",
+    once:true,
+    onEnter:()=>{
+
+        const tl = gsap.timeline();
+
+       
+
+        /* 背景图层从下滑入 */
+        tl.to("#scene4Bg",{
+            opacity:1,
+            y:0,
+            duration:1.0,
+            ease:"power3.out"
+        }, 0);
+
+        /* 遮罩像帷幕从底部向上收起 */
+        tl.to("#scene4Mask",{
+            scaleY:0,
+            duration:1.2,
+            ease:"expo.inOut"
+        }, 0.1);
+
+        /* canvas wrap 放大缩回 + 淡入 */
+        tl.to("#scene4CanvasWrap",{
+            opacity:1,
+            scale:1,
+            duration:1.1,
+            ease:"power2.out"
+        }, 0.35);
+
+    }
+});
+
+/* =========================
+   场景4 — Three.js 初始化
+========================= */
+
+const s4wrap = document.getElementById("scene4CanvasWrap");
+
+const scene4 = new THREE.Scene();
+scene4.background = null;
+
+const camera4 = new THREE.PerspectiveCamera(
+    45,
+    s4wrap.offsetWidth / s4wrap.offsetHeight,
+    0.1, 1000
+);
+camera4.position.set(0, 0.3, 6);
+
+const renderer4 = new THREE.WebGLRenderer({ antialias:true, alpha:true });
+renderer4.setPixelRatio(window.devicePixelRatio);
+renderer4.setClearColor(0x000000, 0);
+renderer4.setSize(s4wrap.offsetWidth, s4wrap.offsetHeight);
+
+/* canvas 铺满容器 */
+renderer4.domElement.style.position = "absolute";
+renderer4.domElement.style.inset    = "0";
+renderer4.domElement.style.width    = "100%";
+renderer4.domElement.style.height   = "100%";
+s4wrap.appendChild(renderer4.domElement);
+
+/* 灯光 */
+scene4.add(new THREE.AmbientLight(0xffffff, 1.2));
+const dLight = new THREE.DirectionalLight(0xffffff, 1.5);
+dLight.position.set(5, 10, 10);
+scene4.add(dLight);
+const bLight = new THREE.PointLight(0x66ccff, 0.8, 20);
+bLight.position.set(0, 1.5, 2);
+scene4.add(bLight);
+
+/* 深蓝能量线 */
+const energyLine = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.4, 0.4, 60, 32),
+    new THREE.MeshBasicMaterial({ color:0x0a1a6e, transparent:true, opacity:0.85 })
+);
+energyLine.rotation.z = -Math.PI / 3;
+energyLine.position.set(-12, -8, -2);
+energyLine.scale.y = 0;
+scene4.add(energyLine);
+
+/* 四角星 */
+const starTexture  = new THREE.TextureLoader().load("./first.image/星.png");
+const starMaterial = new THREE.SpriteMaterial({
+    map:starTexture, transparent:true, depthWrite:false
+});
+const glowSphere = new THREE.Sprite(starMaterial);
+glowSphere.visible = false;
+scene4.add(glowSphere);
+
+/* 模型 */
+let statue4;
+let statueLocked4 = false;
+const statueGroup4 = new THREE.Group();
+scene4.add(statueGroup4);
+
+new THREE.GLTFLoader().load(
+    "./models/Untitled(8).glb",
+    function(gltf){
+        statue4 = gltf.scene;
+        statue4.scale.set(3.5, 3.5, 3.5);
+        statue4.position.set(-0.1, -0.9, -0.4);
+        statue4.rotation.y = Math.PI;
+        statueGroup4.add(statue4);
+    },
+    undefined,
+    function(err){ console.error(err); }
+);
+
+/* =========================
+   场景4 — 滚轮进度
+   只在 scene4 可见时响应
+========================= */
+
+let s4progress     = 0;
+let s4lastProgress = 0;
+let s4jumping      = false;
+
+window.addEventListener("wheel", (e) => {
+    /* 只在 scene4 进入视口后响应 */
+    const rect = document.getElementById("scene4").getBoundingClientRect();
+    if(rect.top > window.innerHeight * 0.5 || rect.bottom < 0) return;
+    if(s4jumping) return;
+
+    s4progress += e.deltaY * 0.00018;
+    s4progress  = Math.max(0, Math.min(1.5, s4progress));
+}, { passive:true });
+
+/* 跳转动画 */
+function triggerGoddessjump(){
+    if(s4jumping) return;
+    s4jumping = true;
+
+    const flash = document.getElementById("scene4Flash");
+    flash.style.transition = "opacity 0.25s ease";
+    flash.classList.add("active");
+
+    setTimeout(()=>{
+        setTimeout(()=>{
+            window.location.href = "scene1.html";
+        }, 200);
+    }, 250);
+}
+
+/* =========================
+   场景4 — 动画循环
+========================= */
+
+function animate4(){
+    requestAnimationFrame(animate4);
+
+    /* 女神转身 */
+    if(statue4 && !statueLocked4){
+        const target = Math.max(0, Math.PI - s4progress * Math.PI);
+        statue4.rotation.y += (target - statue4.rotation.y) * 0.06;
+        if(Math.abs(statue4.rotation.y) < 0.005){
+            statue4.rotation.y = 0;
+            statueLocked4 = true;
+        }
+    }
+
+    /* 蓝线生长 */
+    energyLine.scale.y +=
+        (Math.min(1, s4progress * 1.2) - energyLine.scale.y) * 0.013;
+
+    /* 星星 */
+    if(s4progress > 1.1){
+        glowSphere.visible = true;
+        glowSphere.position.set(0.22, 0.16, 1);
+
+        const sp = s4progress - 1.1;
+        const t  = sp / 0.4;
+        const gs = 0.02 + t * t * 10;
+        glowSphere.scale.set(gs, gs, 1);
+
+        const delta = s4progress - s4lastProgress;
+        starMaterial.rotation += delta * 8;
+    } else {
+        glowSphere.visible = false;
+    }
+
+    s4lastProgress = s4progress;
+
+    if(s4progress > 1.45 && !s4jumping) triggerGoddessjump();
+
+    renderer4.render(scene4, camera4);
+}
+
+animate4();
+
+/* 自适应 */
+window.addEventListener("resize", ()=>{
+    camera4.aspect = s4wrap.offsetWidth / s4wrap.offsetHeight;
+    camera4.updateProjectionMatrix();
+    renderer4.setSize(s4wrap.offsetWidth, s4wrap.offsetHeight);
+    ScrollTrigger.refresh();
+});
+
+/* =========================
+   WebGL Fluid Reveal（场景3）
 ========================= */
 
 const canvas = document.getElementById('fluidCanvas');
@@ -579,7 +863,6 @@ let mouseX = 0.5, mouseY = 0.5;
 let lastX  = 0.5, lastY  = 0.5;
 let trailOpacity = 0;
 
-/* 鼠标事件：相对场景3定位 */
 function updateMouse(clientX, clientY){
     const rect = document.getElementById('scene3').getBoundingClientRect();
     mouseX = (clientX - rect.left) / rect.width;
@@ -591,8 +874,6 @@ window.addEventListener('touchmove', e => {
     e.preventDefault();
     updateMouse(e.touches[0].clientX, e.touches[0].clientY);
 },{ passive:false });
-
-/* ── Shaders ── */
 
 const VS = `#version 300 es
 in vec2 a_pos;
@@ -681,8 +962,6 @@ void main(){
   fragColor=vec4(color.rgb,1.0);
 }`;
 
-/* ── WebGL 工具 ── */
-
 function compile(src,type){
     const s=gl.createShader(type);
     gl.shaderSource(s,src);
@@ -753,8 +1032,6 @@ function drawQuad(prog,uniforms){
     gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
 }
 
-/* ── 初始化 ── */
-
 function resizeFluid(){
     pr = Math.min(window.devicePixelRatio, 2);
     const parallax = document.getElementById('scene3Parallax');
@@ -800,8 +1077,6 @@ function initPrograms(){
     progFluid   = makeProgram(VS, FLUID_FS);
     progCompose = makeProgram(VS, COMPOSE_FS);
 }
-
-/* ── 渲染 ── */
 
 function renderFluid(){
     requestAnimationFrame(renderFluid);
