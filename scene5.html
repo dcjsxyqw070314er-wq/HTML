@@ -297,7 +297,6 @@ const SAVED=JSON.parse(localStorage.getItem('puzzle_settings')||'null');
 let PUZZLE_AREA=SAVED?.area||{left:0.190,top:0.130,right:0.820,bottom:0.870};
 let PUZZLE_FULL_SCALE=SAVED?.scale??1.28;
 let PUZZLE_SCATTER_SCALE=SAVED?.scatter??0.80;
-
 let PIECE_ADJUSTMENTS=JSON.parse(localStorage.getItem('puzzle_piece_adjustments')||'{}');
 const PIECE_MAP={1:{col:0,row:0},2:{col:1,row:0},3:{col:2,row:0},4:{col:3,row:0},5:{col:0,row:1},6:{col:1,row:1},7:{col:2,row:1},8:{col:3,row:1},9:{col:0,row:2},10:{col:1,row:2},11:{col:2,row:2},12:{col:3,row:2}};
 const PUZZLE_COLS=4,PUZZLE_ROWS=3;
