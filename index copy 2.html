@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Tumbler</title>
+
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
+
+<style>
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+html,
+body{
+    width:100%;
+    overflow-x:hidden;
+    background:#E5DDD4;
+    font-family:"PingFang SC",sans-serif;
+}
+
+/* =========================
+   场景1
+========================= */
+
+.stage-wrapper{
+    width:100vw;
+    height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    position:relative;
+    overflow:hidden;
+    z-index:10;
+}
+
+.stage{
+    position:relative;
+    width:1920px;
+    height:1080px;
+    transform-origin:center center;
+    left:-40px;
+}
+
+.bg{
+    position:absolute;
+    width:97%;
+    height:97%;
+    left:3%;
+    top:3%;
+    object-fit:contain;
+    z-index:1;
+}
+
+.person{
+    position:absolute;
+    left:650px;
+    top:429px;
+    width:470px;
+    z-index:28;
+    cursor:pointer;
+    transform-origin:center bottom;
+}
+
+/* =========================
+   导航
+========================= */
+
+.nav-wrap{
+    position:fixed;
+    left:790px;
+    top:310px;
+    width:760px;
+    height:44px;
+    z-index:60;
+    transform-origin:center center;
+}
+
+.nav-bg{
+    position:absolute;
+    width:760px;
+    height:50px;
+    left:0;
+    top:0;
+    z-index:20;
+    transition:0.4s;
+}
+
+.nav{
+    position:absolute;
+    top:2px;
+    font-size:28px;
+    font-weight:400;
+    color:#E5DDD4;
+    text-decoration:none;
+    z-index:25;
+    transition:0.3s;
+}
+
+.nav:hover{
+    transform:translateY(-2px);
+    opacity:0.8;
+}
+
+.nav-home{ left:115px; }
+.nav-about{ left:335px; }
+.nav-intro{ left:555px; }
+
+/* =========================
+   蓝字
+========================= */
+
+.bottom-wrap{
+    position:absolute;
+    left:162px;
+    top:707px;
+    width:1400px;
+    height:340px;
+    z-index:40;
+}
+
+.bottom-title{
+    position:absolute;
+    left:0;
+    top:0;
+    width:1400px;
+    z-index:41;
+}
+
+.bottom-line{
+    position:absolute;
+    left:0;
+    top:251px;
+    width:1350px;
+    height:1px;
+    background:#1E1E8F;
+    opacity:0.5;
+    z-index:39;
+}
+
+/* =========================
+   自适应
+========================= */
+
+@media (max-width:1920px){
+    .stage{
+        transform:scale(calc(100vw / 1920));
+    }
+}
+
+@media (max-height:1080px){
+    .stage{
+        transform:scale(
+            min(
+                calc(100vw / 1920),
+                calc(100vh / 1080)
+            )
+        );
+    }
+}
+
+/* =========================
+   场景1滚动空间
+========================= */
+
+.scene1-scroll-space{
+    width:100%;
+    height:500px;
+    background:#E5DDD4;
+}
+
+/* =========================
+   场景2
+========================= */
+
+.scene{
+    width:100%;
+    height:1200px;
+    display:flex;
+    justify-content:center;
+    align-items:flex-start;
+    background:#E5DDD4;
+    position:relative;
+    overflow:visible;
+    z-index:1;
+}
+
+.map{
+    position:relative;
+    width:1920px;
+    height:2160px;
+    transform-origin:top center;
+    transform:scale(0.72);
+    left:-30px;
+    top:-490px;
+    flex-shrink:0;
+}
+
+.bg2{
+    position:absolute;
+    left:0;
+    top:0;
+    width:1920px;
+    height:2160px;
+    object-fit:cover;
+    z-index:1;
+    transition:transform 0.2s linear;
+}
+
+/* =========================
+   场景2图片
+========================= */
+
+.scene-img{
+    position:absolute;
+    z-index:20;
+    opacity:0;
+    margin-top:-300px;
+    transform:translateY(100px) scale(0.94);
+    transition:
+        opacity 1s ease,
+        transform 1s ease;
+}
+
+.scene-img.show{
+    opacity:1;
+    transform:translateY(0) scale(1);
+}
+
+.img1{ width:1000px; left:225px; top:550px; }
+.img2{ width:210px;  left:1700px; top:550px; }
+.img3{ width:255px;  left:218px; top:930px; }
+.img4{ width:550px;  left:720px; top:1000px; }
+.img5{ width:290px;  left:1600px; top:1190px; }
+.img6{ width:310px;  left:230px; top:1800px; }
+
+/* =========================
+   场景3 — Fluid Reveal
+========================= */
+
+.scene3{
+    width:100%;
+    height:100vh;
+    position:relative;
+    overflow:hidden;
+    background:#000;
+    z-index:5;
+    margin-top:-60px;
+}
+
+.scene3-parallax{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:130%;
+    top:-15%;
+    will-change:transform;
+}
+
+.scene3-canvas{
+    position:absolute;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    display:block;
+}
+
+.scene3-mask{
+    position:absolute;
+    inset:0;
+    background:#E5DDD4;
+    z-index:30;
+    transform-origin:bottom center;
+    pointer-events:none;
+}
+
+.scene3-hint{
+    position:absolute;
+    bottom:56px;
+    left:50%;
+    transform:translateX(-50%);
+    z-index:40;
+    pointer-events:none;
+    opacity:0;
+    text-align:center;
+    white-space:nowrap;
+}
+
+.scene3-hint-main{
+    display:block;
+    font-size:26px;
+    font-weight:300;
+    letter-spacing:0.28em;
+    color:rgba(229,221,212,0.82);
+    line-height:1;
+}
+
+.scene3-hint-sub{
+    display:block;
+    font-size:13px;
+    font-weight:300;
+    letter-spacing:0.5em;
+    color:rgba(229,221,212,0.35);
+    margin-top:14px;
+    text-transform:uppercase;
+}
+
+/* =========================
+   场景4 — Goddess
+   紧接 scene3，无大空白
+========================= */
+
+.scene4{
+    width:100%;
+    height:100vh;
+    position:relative;
+    overflow:hidden;
+    z-index:4;
+    /* 向上叠压 scene3，缩短视觉间距 */
+    margin-top:100px;
+}
+
+/* Frame 3.png 背景层 */
+.scene4-bg{
+    position:absolute;
+    inset:0;
+    background:url("./first.image/Frame 3.png") center center / cover no-repeat;
+    z-index:0;
+    /* 入场前从下方藏住 */
+    transform:translateY(60px);
+    opacity:0;
+}
+
+/* Three.js canvas */
+.scene4-canvas-wrap{
+    position:absolute;
+    inset:0;
+    z-index:1;
+    opacity:0;
+    transform:scale(1.04);
+}
+
+/* 入场遮罩：从底部向上收起 */
+.scene4-mask{
+    position:absolute;
+    inset:0;
+    background:#E5DDD4;
+    z-index:20;
+    transform-origin:bottom center;
+    pointer-events:none;
+}
+
+/* 白光跳转遮罩 */
+.scene4-flash{
+    position:absolute;
+    inset:0;
+    background:#ffffff;
+    opacity:0;
+    pointer-events:none;
+    z-index:99;
+    transition:opacity 0.25s ease;
+}
+
+.scene4-flash.active{
+    opacity:1;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<!-- =====================
+     场景1
+===================== -->
+
+<div class="stage-wrapper">
+    <div class="stage">
+
+        <img class="bg" src="first.image/Frame 1.png">
+
+        <div class="nav-wrap" id="navWrap">
+            <img class="nav-bg" id="navBg" src="first.image/Rectangle 1.png">
+            <a href="index.html" class="nav nav-home">首页</a>
+            <a href="about.html" class="nav nav-about">关于</a>
+            <a href="intro.html" class="nav nav-intro">简介</a>
+        </div>
+
+        <img class="person" id="person" src="first.image/不到人 1.png">
+
+        <div class="bottom-wrap" id="bottomWrap">
+            <img class="bottom-title" src="first.image/Geese and chameleon.png">
+            <div class="bottom-line"></div>
+        </div>
+
+    </div>
+</div>
+
+<!-- 场景1滚动空间 -->
+<div class="scene1-scroll-space"></div>
+
+<!-- =====================
+     场景2
+===================== -->
+
+<section class="scene">
+    <div class="map">
+
+        <img class="bg2" id="bg2" src="./first.image/Frame 2.png">
+
+        <img class="scene-img img1" id="img1" src="./first.image/图1.png">
+        <img class="scene-img img2" id="img2" src="./first.image/图2.png">
+        <img class="scene-img img3" id="img3" src="./first.image/图3.png">
+        <img class="scene-img img4" id="img4" src="./first.image/图4.png">
+        <img class="scene-img img5" id="img5" src="./first.image/图5.png">
+        <img class="scene-img img6" id="img6" src="./first.image/图6.png">
+
+    </div>
+</section>
+
+<!-- =====================
+     场景3 — Fluid Reveal
+===================== -->
+
+<section class="scene3" id="scene3">
+
+    <div class="scene3-parallax" id="scene3Parallax">
+        <canvas class="scene3-canvas" id="fluidCanvas"></canvas>
+    </div>
+
+    <div class="scene3-mask" id="scene3Mask"></div>
+
+    <div class="scene3-hint" id="scene3Hint">
+        <span class="scene3-hint-main">标签之下，还有真实的我吗</span>
+        <span class="scene3-hint-sub">move to reveal</span>
+    </div>
+
+</section>
+
+<!-- =====================
+     场景4 — Goddess
+===================== -->
+
+<section class="scene4" id="scene4">
+
+    <!-- 背景图层 -->
+    <div class="scene4-bg" id="scene4Bg"></div>
+
+    <!-- 遮罩（入场用） -->
+    <div class="scene4-mask" id="scene4Mask"></div>
+
+    <!-- 白光跳转遮罩 -->
+    <div class="scene4-flash" id="scene4Flash"></div>
+
+    <!-- Three.js 挂载容器 -->
+    <div class="scene4-canvas-wrap" id="scene4CanvasWrap"></div>
+
+</section>
+
+<!-- =====================
+     Three.js（仅 scene4 用）
+===================== -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+
+<script>
+
+/* =========================
+   GSAP 注册
+========================= */
+gsap.registerPlugin(ScrollTrigger);
+
+/* =========================
+   场景1 入场动画
+========================= */
+
+gsap.from(".bg",{
+    scale:1.03,
+    opacity:0,
+    duration:1.4,
+    ease:"power3.out"
+});
+
+gsap.from(".person",{
+    y:120,
+    rotate:8,
+    opacity:0,
+    duration:1.5,
+    ease:"elastic.out(1,0.55)"
+});
+
+gsap.from(".nav-wrap",{
+    y:-70,
+    opacity:0,
+    duration:1
+});
+
+gsap.from(".bottom-wrap",{
+    y:100,
+    opacity:0,
+    duration:1.3,
+    ease:"power3.out"
+});
+
+/* =========================
+   点击摇摆
+========================= */
+
+const person = document.getElementById("person");
+
+person.addEventListener("click",()=>{
+    gsap.killTweensOf(person);
+    gsap.timeline()
+        .to(person,{ rotation:10, duration:0.18 })
+        .to(person,{ rotation:-8, duration:0.22 })
+        .to(person,{ rotation:5,  duration:0.18 })
+        .to(person,{ rotation:-3, duration:0.16 })
+        .to(person,{ rotation:0,  duration:0.8, ease:"elastic.out(1,0.35)" });
+});
+
+/* =========================
+   场景2 图片出现
+========================= */
+
+const images = [
+    document.querySelector("#img1"),
+    document.querySelector("#img2"),
+    document.querySelector("#img3"),
+    document.querySelector("#img4"),
+    document.querySelector("#img5"),
+    document.querySelector("#img6")
+];
+
+let currentIndex = 0;
+
+function checkImages(){
+    if(currentIndex >= images.length) return;
+    const rect = images[currentIndex].getBoundingClientRect();
+    if(rect.top < window.innerHeight * 0.82){
+        images[currentIndex].classList.add("show");
+        currentIndex++;
+    }
+}
+
+/* =========================
+   场景1+2 滚动动画
+========================= */
+
+function onScroll(){
+    const scrollY = window.scrollY;
+
+    let navTop = 310 - scrollY * 1.2;
+    if(navTop <= 30) navTop = 30;
+
+    let navScale = 1 - scrollY * 0.00045;
+    if(navScale <= 0.72) navScale = 0.72;
+
+    gsap.to("#navWrap",{
+        top:navTop,
+        scale:navScale,
+        duration:0.7,
+        ease:"power2.out"
+    });
+
+    let navOpacity = 1 - (scrollY / 1000);
+    navOpacity = Math.max(0.4, navOpacity);
+    gsap.to("#navBg",{ opacity:navOpacity, duration:0.5 });
+
+    let personMove = scrollY * 0.32;
+    if(personMove >= 250) personMove = 250;
+    gsap.to("#person",{
+        y:-personMove,
+        scale:1 - (scrollY * 0.00018),
+        duration:0.9,
+        ease:"power2.out"
+    });
+
+    let bottomMove = scrollY * 0.16;
+    if(bottomMove >= 180) bottomMove = 180;
+    gsap.to("#bottomWrap",{
+        y:-bottomMove,
+        duration:1,
+        ease:"power2.out"
+    });
+
+    const bg2 = document.querySelector("#bg2");
+    bg2.style.transform = `scale(${1 + scrollY * 0.00001})`;
+
+    checkImages();
+}
+
+checkImages();
+window.addEventListener("scroll", onScroll);
+
+/* =========================
+   场景3 — GSAP ScrollTrigger 视差
+========================= */
+
+ScrollTrigger.create({
+    trigger:"#scene3",
+    start:"top bottom",
+    end:"top top",
+    onEnter:()=>{
+        gsap.to("#scene3Mask",{
+            scaleY:0,
+            duration:1.1,
+            ease:"power3.inOut"
+        });
+        gsap.to("#scene3Hint",{
+            opacity:1,
+            delay:1.2,
+            duration:0.8
+        });
+    }
+});
+
+gsap.to("#scene3Parallax",{
+    y: "-12%",
+    ease:"none",
+    scrollTrigger:{
+        trigger:"#scene3",
+        start:"top bottom",
+        end:"bottom top",
+        scrub:true
+    }
+});
+
+/* =========================
+   场景4 — Goddess 入场动画
+   时序：
+   1. 背景从下滑入 + 遮罩从底部收起（像帷幕拉起）
+   2. canvas wrap 淡入并轻微缩放还原
+   3. 女神模型已在 Three.js 里等待，从背面开始
+========================= */
+
+ScrollTrigger.create({
+    trigger:"#scene4",
+    start:"top 85%",
+    once:true,
+    onEnter:()=>{
+
+        const tl = gsap.timeline();
+
+       
+
+        /* 背景图层从下滑入 */
+        tl.to("#scene4Bg",{
+            opacity:1,
+            y:0,
+            duration:1.0,
+            ease:"power3.out"
+        }, 0);
+
+        /* 遮罩像帷幕从底部向上收起 */
+        tl.to("#scene4Mask",{
+            scaleY:0,
+            duration:1.2,
+            ease:"expo.inOut"
+        }, 0.1);
+
+        /* canvas wrap 放大缩回 + 淡入 */
+        tl.to("#scene4CanvasWrap",{
+            opacity:1,
+            scale:1,
+            duration:1.1,
+            ease:"power2.out"
+        }, 0.35);
+
+    }
+});
+
+/* =========================
+   场景4 — Three.js 初始化
+========================= */
+
+const s4wrap = document.getElementById("scene4CanvasWrap");
+
+const scene4 = new THREE.Scene();
+scene4.background = null;
+
+const camera4 = new THREE.PerspectiveCamera(
+    45,
+    s4wrap.offsetWidth / s4wrap.offsetHeight,
+    0.1, 1000
+);
+camera4.position.set(0, 0.3, 6);
+
+const renderer4 = new THREE.WebGLRenderer({ antialias:true, alpha:true });
+renderer4.setPixelRatio(window.devicePixelRatio);
+renderer4.setClearColor(0x000000, 0);
+renderer4.setSize(s4wrap.offsetWidth, s4wrap.offsetHeight);
+
+/* canvas 铺满容器 */
+renderer4.domElement.style.position = "absolute";
+renderer4.domElement.style.inset    = "0";
+renderer4.domElement.style.width    = "100%";
+renderer4.domElement.style.height   = "100%";
+s4wrap.appendChild(renderer4.domElement);
+
+/* 灯光 */
+scene4.add(new THREE.AmbientLight(0xffffff, 1.2));
+const dLight = new THREE.DirectionalLight(0xffffff, 1.5);
+dLight.position.set(5, 10, 10);
+scene4.add(dLight);
+const bLight = new THREE.PointLight(0x66ccff, 0.8, 20);
+bLight.position.set(0, 1.5, 2);
+scene4.add(bLight);
+
+/* 深蓝能量线 */
+const energyLine = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.4, 0.4, 60, 32),
+    new THREE.MeshBasicMaterial({ color:0x0a1a6e, transparent:true, opacity:0.85 })
+);
+energyLine.rotation.z = -Math.PI / 3;
+energyLine.position.set(-12, -8, -2);
+energyLine.scale.y = 0;
+scene4.add(energyLine);
+
+/* 四角星 */
+const starTexture  = new THREE.TextureLoader().load("./first.image/星.png");
+const starMaterial = new THREE.SpriteMaterial({
+    map:starTexture, transparent:true, depthWrite:false
+});
+const glowSphere = new THREE.Sprite(starMaterial);
+glowSphere.visible = false;
+scene4.add(glowSphere);
+
+/* 模型 */
+let statue4;
+let statueLocked4 = false;
+const statueGroup4 = new THREE.Group();
+scene4.add(statueGroup4);
+
+new THREE.GLTFLoader().load(
+    "./models/Untitled(8).glb",
+    function(gltf){
+        statue4 = gltf.scene;
+        statue4.scale.set(3.5, 3.5, 3.5);
+        statue4.position.set(-0.1, -0.9, -0.4);
+        statue4.rotation.y = Math.PI;
+        statueGroup4.add(statue4);
+    },
+    undefined,
+    function(err){ console.error(err); }
+);
+
+/* =========================
+   场景4 — 滚轮进度
+   只在 scene4 可见时响应
+========================= */
+
+let s4progress     = 0;
+let s4lastProgress = 0;
+let s4jumping      = false;
+
+window.addEventListener("wheel", (e) => {
+    /* 只在 scene4 进入视口后响应 */
+    const rect = document.getElementById("scene4").getBoundingClientRect();
+    if(rect.top > window.innerHeight * 0.5 || rect.bottom < 0) return;
+    if(s4jumping) return;
+
+    s4progress += e.deltaY * 0.00018;
+    s4progress  = Math.max(0, Math.min(1.5, s4progress));
+}, { passive:true });
+
+/* 跳转动画 */
+function triggerGoddessjump(){
+    if(s4jumping) return;
+    s4jumping = true;
+
+    const flash = document.getElementById("scene4Flash");
+    flash.style.transition = "opacity 0.25s ease";
+    flash.classList.add("active");
+
+    setTimeout(()=>{
+        setTimeout(()=>{
+            window.location.href = "scene1.html";
+        }, 200);
+    }, 250);
+}
+
+/* =========================
+   场景4 — 动画循环
+========================= */
+
+function animate4(){
+    requestAnimationFrame(animate4);
+
+    /* 女神转身 */
+    if(statue4 && !statueLocked4){
+        const target = Math.max(0, Math.PI - s4progress * Math.PI);
+        statue4.rotation.y += (target - statue4.rotation.y) * 0.06;
+        if(Math.abs(statue4.rotation.y) < 0.005){
+            statue4.rotation.y = 0;
+            statueLocked4 = true;
+        }
+    }
+
+    /* 蓝线生长 */
+    energyLine.scale.y +=
+        (Math.min(1, s4progress * 1.2) - energyLine.scale.y) * 0.013;
+
+    /* 星星 */
+    if(s4progress > 1.1){
+        glowSphere.visible = true;
+        glowSphere.position.set(0.22, 0.16, 1);
+
+        const sp = s4progress - 1.1;
+        const t  = sp / 0.4;
+        const gs = 0.02 + t * t * 10;
+        glowSphere.scale.set(gs, gs, 1);
+
+        const delta = s4progress - s4lastProgress;
+        starMaterial.rotation += delta * 8;
+    } else {
+        glowSphere.visible = false;
+    }
+
+    s4lastProgress = s4progress;
+
+    if(s4progress > 1.45 && !s4jumping) triggerGoddessjump();
+
+    renderer4.render(scene4, camera4);
+}
+
+animate4();
+
+/* 自适应 */
+window.addEventListener("resize", ()=>{
+    camera4.aspect = s4wrap.offsetWidth / s4wrap.offsetHeight;
+    camera4.updateProjectionMatrix();
+    renderer4.setSize(s4wrap.offsetWidth, s4wrap.offsetHeight);
+    ScrollTrigger.refresh();
+});
+
+/* =========================
+   WebGL Fluid Reveal（场景3）
+========================= */
+
+const canvas = document.getElementById('fluidCanvas');
+const gl = canvas.getContext('webgl2', { antialias:false });
+
+const IMG_SOLID    = 'images/骨骼 (2).png';
+const IMG_SKELETON = 'images/骨骼 (1).png';
+
+let W, H, pr;
+let solidTex, skeleTex;
+let trailFBO_A, trailFBO_B, fluidFBO_A, fluidFBO_B;
+let trailTex_A, trailTex_B, fluidTex_A, fluidTex_B;
+let quadBuf;
+
+let mouseX = 0.5, mouseY = 0.5;
+let lastX  = 0.5, lastY  = 0.5;
+let trailOpacity = 0;
+
+function updateMouse(clientX, clientY){
+    const rect = document.getElementById('scene3').getBoundingClientRect();
+    mouseX = (clientX - rect.left) / rect.width;
+    mouseY = 1.0 - (clientY - rect.top)  / rect.height;
+}
+
+window.addEventListener('mousemove', e => updateMouse(e.clientX, e.clientY));
+window.addEventListener('touchmove', e => {
+    e.preventDefault();
+    updateMouse(e.touches[0].clientX, e.touches[0].clientY);
+},{ passive:false });
+
+const VS = `#version 300 es
+in vec2 a_pos;
+out vec2 v_uv;
+void main(){
+  v_uv = a_pos * 0.5 + 0.5;
+  gl_Position = vec4(a_pos, 0.0, 1.0);
+}`;
+
+const TRAIL_FS = `#version 300 es
+precision highp float;
+in vec2 v_uv;
+out vec4 fragColor;
+uniform sampler2D u_prev;
+uniform vec2 u_mouse;
+uniform vec2 u_last;
+uniform float u_opacity;
+uniform float u_radius;
+void main(){
+  vec4 prev = texture(u_prev, v_uv);
+  float faded = min(1.0, prev.r + 0.025);
+  vec2 pa = v_uv - u_last;
+  vec2 ba = u_mouse - u_last;
+  float h = clamp(dot(pa,ba)/max(dot(ba,ba),0.0001),0.0,1.0);
+  float d = length(pa - ba*h);
+  float trail = 1.0 - smoothstep(0.0,u_radius,d);
+  float val = min(faded, 1.0 - trail * u_opacity);
+  fragColor = vec4(val,val,val,1.0);
+}`;
+
+const FLUID_FS = `#version 300 es
+precision highp float;
+in vec2 v_uv;
+out vec4 fragColor;
+uniform sampler2D u_prev;
+uniform sampler2D u_trail;
+uniform vec2 u_texel;
+float hash(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
+float noise(vec2 p){
+  vec2 i=floor(p); vec2 f=fract(p);
+  vec2 u=f*f*(3.0-2.0*f);
+  return mix(mix(hash(i),hash(i+vec2(1,0)),u.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),u.x),u.y);
+}
+float fbm(vec2 p){
+  float v=0.0,a=0.5;
+  for(int i=0;i<4;i++){ v+=a*noise(p); p=p*2.0+vec2(100.0); a*=0.5; }
+  return v;
+}
+void main(){
+  vec2 uv=v_uv;
+  vec2 disp=(fbm(uv*20.0)-0.5)*u_texel*18.0;
+  float c =texture(u_prev,uv).r;
+  float c1=texture(u_prev,uv+vec2(disp.x,0.0)).r;
+  float c2=texture(u_prev,uv-vec2(disp.x,0.0)).r;
+  float c3=texture(u_prev,uv+vec2(0.0,disp.y)).r;
+  float c4=texture(u_prev,uv-vec2(0.0,disp.y)).r;
+  float flood=min(min(min(c,c1),min(c2,c3)),c4);
+  float trail=texture(u_trail,uv).r;
+  float combined=min(flood,trail);
+  float result=min(1.0,combined+0.004);
+  fragColor=vec4(result,result,result,1.0);
+}`;
+
+const COMPOSE_FS = `#version 300 es
+precision highp float;
+in vec2 v_uv;
+out vec4 fragColor;
+uniform sampler2D u_solid;
+uniform sampler2D u_skele;
+uniform sampler2D u_fluid;
+float hash3(vec3 p){ return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453); }
+void main(){
+  vec2 uv=vec2(v_uv.x,1.0-v_uv.y);
+  vec4 solid=texture(u_solid,uv);
+  vec4 skele=texture(u_skele,uv);
+  float mask=texture(u_fluid,v_uv).r;
+  float reveal=1.0-mask;
+  vec4 color=mix(solid,skele,reveal);
+  float scan=sin(v_uv.y*1200.0)*0.04;
+  color.rgb-=scan;
+  float grain=hash3(vec3(v_uv*800.0,fract(float(gl_FragCoord.x+gl_FragCoord.y)*0.001)))*0.03;
+  color.rgb-=grain;
+  vec2 cv=v_uv-0.5;
+  float vignette=1.0-dot(cv,cv)*1.2;
+  color.rgb*=clamp(vignette,0.0,1.0);
+  fragColor=vec4(color.rgb,1.0);
+}`;
+
+function compile(src,type){
+    const s=gl.createShader(type);
+    gl.shaderSource(s,src);
+    gl.compileShader(s);
+    if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)) console.error(gl.getShaderInfoLog(s));
+    return s;
+}
+function makeProgram(vs,fs){
+    const p=gl.createProgram();
+    gl.attachShader(p,compile(vs,gl.VERTEX_SHADER));
+    gl.attachShader(p,compile(fs,gl.FRAGMENT_SHADER));
+    gl.linkProgram(p);
+    if(!gl.getProgramParameter(p,gl.LINK_STATUS)) console.error(gl.getProgramInfoLog(p));
+    return p;
+}
+function makeFBO(w,h){
+    const tex=gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D,tex);
+    gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,w,h,0,gl.RGBA,gl.UNSIGNED_BYTE,null);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+    const fbo=gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER,fbo);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,tex,0);
+    gl.bindFramebuffer(gl.FRAMEBUFFER,null);
+    gl.bindFramebuffer(gl.FRAMEBUFFER,fbo);
+    gl.clearColor(1,1,1,1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.bindFramebuffer(gl.FRAMEBUFFER,null);
+    return {fbo,tex};
+}
+function loadTex(url){
+    const tex=gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D,tex);
+    gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,1,1,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array([200,200,220,255]));
+    const img=new Image();
+    img.onload=()=>{
+        gl.bindTexture(gl.TEXTURE_2D,tex);
+        gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,img);
+        gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+        gl.generateMipmap(gl.TEXTURE_2D);
+    };
+    img.src=url;
+    return tex;
+}
+function bindTex(unit,tex){
+    gl.activeTexture(gl.TEXTURE0+unit);
+    gl.bindTexture(gl.TEXTURE_2D,tex);
+}
+function drawQuad(prog,uniforms){
+    gl.useProgram(prog);
+    gl.bindBuffer(gl.ARRAY_BUFFER,quadBuf);
+    const loc=gl.getAttribLocation(prog,'a_pos');
+    gl.enableVertexAttribArray(loc);
+    gl.vertexAttribPointer(loc,2,gl.FLOAT,false,0,0);
+    for(const [name,val] of Object.entries(uniforms)){
+        const u=gl.getUniformLocation(prog,name);
+        if(u===null) continue;
+        if(typeof val==='number') gl.uniform1f(u,val);
+        else if(val.length===2) gl.uniform2fv(u,val);
+        else gl.uniform1i(u,val[0]);
+    }
+    gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+}
+
+function resizeFluid(){
+    pr = Math.min(window.devicePixelRatio, 2);
+    const parallax = document.getElementById('scene3Parallax');
+    W = parallax.offsetWidth;
+    H = parallax.offsetHeight;
+    canvas.width  = W * pr;
+    canvas.height = H * pr;
+    canvas.style.width  = W + 'px';
+    canvas.style.height = H + 'px';
+}
+
+function initFluid(){
+    resizeFluid();
+
+    quadBuf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf);
+    gl.bufferData(gl.ARRAY_BUFFER,
+        new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+
+    solidTex = loadTex(IMG_SOLID);
+    skeleTex  = loadTex(IMG_SKELETON);
+
+    const tw = Math.floor(W*pr), th = Math.floor(H*pr);
+    ({fbo:trailFBO_A, tex:trailTex_A} = makeFBO(tw,th));
+    ({fbo:trailFBO_B, tex:trailTex_B} = makeFBO(tw,th));
+    ({fbo:fluidFBO_A, tex:fluidTex_A} = makeFBO(tw,th));
+    ({fbo:fluidFBO_B, tex:fluidTex_B} = makeFBO(tw,th));
+
+    window.addEventListener('resize', ()=>{
+        resizeFluid();
+        const tw2=Math.floor(W*pr), th2=Math.floor(H*pr);
+        ({fbo:trailFBO_A,tex:trailTex_A}=makeFBO(tw2,th2));
+        ({fbo:trailFBO_B,tex:trailTex_B}=makeFBO(tw2,th2));
+        ({fbo:fluidFBO_A,tex:fluidTex_A}=makeFBO(tw2,th2));
+        ({fbo:fluidFBO_B,tex:fluidTex_B}=makeFBO(tw2,th2));
+        ScrollTrigger.refresh();
+    });
+}
+
+let progTrail, progFluid, progCompose;
+function initPrograms(){
+    progTrail   = makeProgram(VS, TRAIL_FS);
+    progFluid   = makeProgram(VS, FLUID_FS);
+    progCompose = makeProgram(VS, COMPOSE_FS);
+}
+
+function renderFluid(){
+    requestAnimationFrame(renderFluid);
+    if(!progTrail) return;
+
+    const tw = Math.floor(W*pr), th = Math.floor(H*pr);
+
+    const lerpSpeed = 0.08;
+    const cx = lastX + (mouseX - lastX) * lerpSpeed;
+    const cy = lastY + (mouseY - lastY) * lerpSpeed;
+    const dx = cx-lastX, dy = cy-lastY;
+    const dist = Math.sqrt(dx*dx+dy*dy);
+    trailOpacity = dist > 0.001
+        ? Math.min(1.0, trailOpacity + 0.12)
+        : Math.max(0.0, trailOpacity - 0.08);
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, trailFBO_B);
+    gl.viewport(0,0,tw,th);
+    bindTex(0, trailTex_A);
+    drawQuad(progTrail,{
+        u_prev:[0], u_mouse:[cx,cy], u_last:[lastX,lastY],
+        u_opacity:trailOpacity, u_radius:0.15
+    });
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fluidFBO_B);
+    gl.viewport(0,0,tw,th);
+    bindTex(0, fluidTex_A);
+    bindTex(1, trailTex_B);
+    drawQuad(progFluid,{
+        u_prev:[0], u_trail:[1], u_texel:[1.0/tw, 1.0/th]
+    });
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.viewport(0,0,canvas.width,canvas.height);
+    bindTex(0, solidTex);
+    bindTex(1, skeleTex);
+    bindTex(2, fluidTex_B);
+    drawQuad(progCompose,{
+        u_solid:[0], u_skele:[1], u_fluid:[2]
+    });
+
+    let tmp;
+    tmp=trailFBO_A; trailFBO_A=trailFBO_B; trailFBO_B=tmp;
+    tmp=trailTex_A; trailTex_A=trailTex_B; trailTex_B=tmp;
+    tmp=fluidFBO_A; fluidFBO_A=fluidFBO_B; fluidFBO_B=tmp;
+    tmp=fluidTex_A; fluidTex_A=fluidTex_B; fluidTex_B=tmp;
+
+    lastX=cx; lastY=cy;
+}
+
+initFluid();
+initPrograms();
+renderFluid();
+
+</script>
+
+</body>
+</html>

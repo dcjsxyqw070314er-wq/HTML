@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+
+<meta charset="UTF-8" />
+
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+/>
+
+<title>Scene</title>
+
+<style>
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+html,
+body{
+
+    width:100%;
+
+    overflow-x:hidden;
+
+    background:#E5DDD4;
+
+    font-family:
+    "PingFang SC",
+    sans-serif;
+}
+
+/* =========================
+   页面
+========================= */
+
+.scene{
+
+    width:100%;
+
+    height:1650px;
+
+    display:flex;
+
+    justify-content:center;
+
+    overflow:hidden;
+
+    background:#E5DDD4;
+
+    padding-top:40px;
+}
+
+/* =========================
+   主容器
+========================= */
+
+.map{
+
+    position:relative;
+
+    width:1920px;
+
+    height:2160px;
+
+    transform-origin:top center;
+
+    transform:scale(0.72);
+
+    left:-104px;
+}
+
+/* =========================
+   背景
+========================= */
+
+.bg{
+
+    position:absolute;
+
+    left:0;
+    top:0;
+
+    width:1920px;
+
+    height:2160px;
+
+    object-fit:cover;
+
+    z-index:1;
+
+    transition:
+    transform 0.2s linear;
+}
+
+/* =========================
+   图片通用
+========================= */
+
+.scene-img{
+
+    position:absolute;
+
+    z-index:20;
+
+    opacity:0;
+
+    transform:
+    translateY(100px)
+    scale(0.94);
+
+    transition:
+    opacity 1s ease,
+    transform 1s ease;
+}
+
+/* 图片出现 */
+
+.scene-img.show{
+
+    opacity:1;
+
+    transform:
+    translateY(0)
+    scale(1);
+}
+
+/* =========================
+   图片位置
+========================= */
+
+/* 图1 */
+
+.img1{
+
+    width:1000px;
+
+    left:225px;
+    top:250px;
+}
+
+/* 图2 */
+
+.img2{
+
+    width:210px;
+
+    left:1700px;
+    top:250px;
+}
+
+/* 图3 */
+
+.img3{
+
+    width:255px;
+
+    left:218px;
+    top:630px;
+}
+
+/* 图4 */
+
+.img4{
+
+    width:550px;
+
+    left:720px;
+    top:700px;
+}
+
+/* 图5 */
+
+.img5{
+
+    width:290px;
+
+    left:1600px;
+    top:890px;
+}
+
+/* 图6 */
+
+.img6{
+
+    width:310px;
+
+    left:230px;
+    top:1500px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<section class="scene">
+
+    <div class="map">
+
+        <!-- 背景 -->
+
+        <img
+            class="bg"
+            id="bg"
+            src="./first.image/Frame 2.png"
+        >
+
+        <!-- 图1 -->
+
+        <img
+            class="scene-img img1"
+            id="img1"
+            src="./first.image/图1.png"
+        >
+
+        <!-- 图2 -->
+
+        <img
+            class="scene-img img2"
+            id="img2"
+            src="./first.image/图2.png"
+        >
+
+        <!-- 图3 -->
+
+        <img
+            class="scene-img img3"
+            id="img3"
+            src="./first.image/图3.png"
+        >
+
+        <!-- 图4 -->
+
+        <img
+            class="scene-img img4"
+            id="img4"
+            src="./first.image/图4.png"
+        >
+
+        <!-- 图5 -->
+
+        <img
+            class="scene-img img5"
+            id="img5"
+            src="./first.image/图5.png"
+        >
+
+        <!-- 图6 -->
+
+        <img
+            class="scene-img img6"
+            id="img6"
+            src="./first.image/图6.png"
+        >
+
+    </div>
+
+</section>
+
+<script>
+
+/* =========================
+   背景轻微动态
+========================= */
+
+window.addEventListener("scroll",()=>{
+
+    const scrollY =
+    window.scrollY;
+
+    const bg =
+    document.querySelector("#bg");
+
+    const scale =
+
+    1
+    +
+    scrollY * 0.00002;
+
+    bg.style.transform =
+    `scale(${scale})`;
+
+});
+
+
+/* =========================
+   图片按顺序出现
+========================= */
+
+const images = [
+
+    document.querySelector("#img1"),
+    document.querySelector("#img2"),
+    document.querySelector("#img3"),
+    document.querySelector("#img4"),
+    document.querySelector("#img5"),
+    document.querySelector("#img6")
+
+];
+
+let currentIndex = 0;
+
+
+/* 初始检测 */
+
+checkImages();
+
+/* 滚动监听 */
+
+window.addEventListener(
+    "scroll",
+    checkImages
+);
+
+
+/* =========================
+   顺序出现逻辑
+========================= */
+
+function checkImages(){
+
+    if(currentIndex >= images.length)
+    return;
+
+    const currentImg =
+    images[currentIndex];
+
+    const rect =
+    currentImg.getBoundingClientRect();
+
+    if(
+
+        rect.top
+
+        <
+
+        window.innerHeight * 0.82
+
+    ){
+
+        currentImg.classList.add("show");
+
+        currentIndex++;
+
+    }
+
+}
+
+</script>
+
+</body>
+
+</html>
