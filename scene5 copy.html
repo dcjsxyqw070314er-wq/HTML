@@ -11,438 +11,140 @@
   .scene { display:none; position:absolute; inset:0; }
   .scene.active { display:block; }
 
-  /* 卧室 */
   #scene-bedroom { background:url('images5/卧室.png') center/cover no-repeat; }
-  #frame-hotspot {
-    position:absolute; left:31.5%; top:59%; width:6.5%; height:11%;
-    cursor:pointer; border-radius:4px; z-index:2;
-  }
-
-  /* 时钟热区：卧室图中时钟位置约 left=24% top=8% */
-  #clock-hotspot {
-    position:absolute; left:26%; top:8%; width:7%; height:14%;
-    cursor:pointer; border-radius:50%; z-index:2;
-  }
-
-  /* 茶几上的拼图热区：约在画面中下方 */
-  #puzzle-hotspot {
-    position:absolute; left:39%; top:67%; width:14%; height:11%;
-    cursor:pointer; border-radius:3px; z-index:8;
-  }
-
-  /* 沙发旁的门热区：通向下一个场景 */
-  #door-hotspot {
-    position:absolute; left:42%; top:5%; width:14%; height:55%;
-    cursor:pointer; border-radius:4px; z-index:2;
-  }
+  #frame-hotspot { position:absolute; left:31.5%; top:59%; width:6.5%; height:11%; cursor:pointer; border-radius:4px; z-index:2; }
+  #clock-hotspot { position:absolute; left:26%; top:8%; width:7%; height:14%; cursor:pointer; border-radius:50%; z-index:2; }
+  #puzzle-hotspot { position:absolute; left:39%; top:67%; width:14%; height:11%; cursor:pointer; border-radius:3px; z-index:8; }
+  #door-hotspot { position:absolute; left:42%; top:5%; width:14%; height:55%; cursor:pointer; border-radius:4px; z-index:2; }
 
   .hint-label {
-    position:absolute; left:36.5%; top:59%; transform:translateX(-50%);
-    color:rgba(255,220,100,.9); font-size:.72rem; font-family:sans-serif;
-    pointer-events:none; animation:pulse 2s ease-in-out infinite; z-index:2;
+    position:absolute; padding:6px 16px;
+    background:rgba(19,15,15,0.404); border:1px solid rgba(255,255,255,.2);
+    border-radius:20px; color:rgba(255,255,255,.95); font-size:.85rem;
+    font-family:sans-serif; pointer-events:none; z-index:10;
+    backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+    letter-spacing:.05em; white-space:nowrap;
   }
-  @keyframes pulse { 0%,100%{opacity:.4} 50%{opacity:1} }
+  #hint-table { left:43%; top:63%; transform:translateX(-50%); }
+  #hint-clock { left:36%; top:14%; transform:translateX(-50%); }
+  #hint-next  { left:59%; top:24%; transform:translateX(-50%); }
 
-  /* ===== 画框场景 ===== */
   #scene-frame { background:url('images5/卧室.png') center/cover no-repeat; }
 
-  /* ===== 时钟场景 ===== */
-  #scene-clock {
-    background:url('images5/时钟.png') center/cover no-repeat;
-  }
-  #scene-clock.active {
-    display:flex; align-items:center; justify-content:center;
-  }
+  #scene-clock { background:url('images5/时钟.png') center/cover no-repeat; }
+  #scene-clock.active { display:flex; align-items:center; justify-content:center; }
   #scene-clock canvas { display:block; }
 
-  /* ===== 统一场景UI按钮样式（左上角胶囊玻璃质感）===== */
-  .scene-ui-bar {
-    position:fixed; top:22px; left:24px; z-index:1000;
-    display:flex; flex-direction:row; gap:12px;
-    pointer-events:auto;
-  }
+  .scene-ui-bar { position:fixed; top:22px; left:24px; z-index:1000; display:flex; flex-direction:row; gap:12px; pointer-events:auto; }
   .scene-back-btn, .scene-reset-btn {
-    padding:8px 24px;
-    background:rgba(255,255,255,.18);
-    border:1.5px solid rgba(255,255,255,.6);
-    border-radius:18px;
-    color:#fff; font-size:.96rem; font-family:sans-serif;
-    cursor:pointer;
-    backdrop-filter:blur(10px);
-    -webkit-backdrop-filter:blur(10px);
-    transition:background .2s, border-color .2s, transform .15s;
-    letter-spacing:.05em;
+    padding:8px 24px; background:rgba(255,255,255,.18); border:1.5px solid rgba(255,255,255,.6);
+    border-radius:18px; color:#fff; font-size:.96rem; font-family:sans-serif; cursor:pointer;
+    backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+    transition:background .2s,border-color .2s,transform .15s; letter-spacing:.05em;
     box-shadow:0 4px 12px rgba(0,0,0,.15);
   }
-  .scene-back-btn:hover, .scene-reset-btn:hover {
-    background:rgba(255,255,255,.35);
-    border-color:#fff;
-  }
-  .scene-back-btn:active, .scene-reset-btn:active {
-    transform:scale(0.97);
-  }
+  .scene-back-btn:hover, .scene-reset-btn:hover { background:rgba(255,255,255,.35); border-color:#fff; }
+  .scene-back-btn:active, .scene-reset-btn:active { transform:scale(0.97); }
 
-  /* ===== 拼图场景 ===== */
-  #scene-puzzle {
-    background:url('images5/桌面拼图.jpg') center/cover no-repeat;
-  }
-  #puzzle-canvas {
-    position:absolute; top:0; left:0;
-    width:100%; height:100%;
-    z-index:10;
-    cursor:default;
-  }
-  .puzzle-back {
-    position:absolute; top:22px; left:24px; z-index:30;
-    padding:8px 24px;
-    background:rgba(255,255,255,.18);
-    border:1.5px solid rgba(255,255,255,.6);
-    border-radius:14px;
-    color:#fff; font-size:.96rem; font-family:sans-serif;
-    cursor:pointer; backdrop-filter:blur(10px);
-    transition:background .2s;
-  }
-  .puzzle-back:hover { background:rgba(255,255,255,.35); }
-
+  #scene-puzzle { background:url('images5/桌面拼图.jpg') center/cover no-repeat; }
+  #puzzle-canvas { position:absolute; top:0; left:0; width:100%; height:100%; z-index:10; cursor:default; }
   .puzzle-progress {
-    position:absolute; top:22px; right:24px; z-index:30;
-    padding:8px 20px;
-    background:rgba(255,255,255,.18);
-    border:1.5px solid rgba(255,255,255,.6);
-    border-radius:14px;
-    color:#fff; font-size:.96rem; font-family:sans-serif;
-    backdrop-filter:blur(10px);
+    position:absolute; top:22px; right:24px; z-index:30; padding:8px 20px;
+    background:rgba(255,255,255,.18); border:1.5px solid rgba(255,255,255,.6);
+    border-radius:14px; color:#fff; font-size:.96rem; font-family:sans-serif; backdrop-filter:blur(10px);
   }
-
   .puzzle-complete {
     position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
-    z-index:40;
-    padding:30px 50px;
-    background:rgba(245,235,200,.95);
-    border:2px solid #0a1540;
-    color:#0a1540;
-    text-align:center;
-    opacity:0;
-    transition:opacity 1s ease;
-    pointer-events:none;
+    z-index:40; padding:30px 50px; background:rgba(245,235,200,.95);
+    border:2px solid #0a1540; color:#0a1540; text-align:center;
+    opacity:0; transition:opacity 1s ease; pointer-events:none;
   }
   .puzzle-complete.visible { opacity:1; }
-  .puzzle-complete .zh {
-    font-family:"STKaiti","KaiTi","楷体",Georgia,serif;
-    font-size:1.4rem;
-    margin-bottom:8px;
-  }
-  .puzzle-complete .en {
-    font-family:Georgia,serif;
-    font-style:italic;
-    font-size:.9rem;
-  }
+  .puzzle-complete .zh { font-family:"STKaiti","KaiTi","楷体",Georgia,serif; font-size:1.4rem; margin-bottom:8px; }
+  .puzzle-complete .en { font-family:Georgia,serif; font-style:italic; font-size:.9rem; }
 
-  /* 拼图调整面板 */
-  .puzzle-editor {
-    position:absolute; top:80px; right:24px; z-index:50;
-    width:320px;
-    background:rgba(20,15,10,.92);
-    border:1.5px solid rgba(255,255,255,.3);
-    border-radius:12px;
-    backdrop-filter:blur(10px);
-    color:#fff;
-    font-family:sans-serif;
-    font-size:13px;
-    display:none;
-    box-shadow:0 8px 24px rgba(0,0,0,.4);
-  }
-  .puzzle-editor.visible { display:block; }
-  .editor-header {
-    display:flex; justify-content:space-between; align-items:center;
-    padding:12px 16px;
-    border-bottom:1px solid rgba(255,255,255,.15);
-    font-weight:500;
-    letter-spacing:.05em;
-  }
-  .editor-toggle {
-    background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.3);
-    color:#fff; width:24px; height:24px; border-radius:6px;
-    cursor:pointer; font-size:16px; line-height:1;
-    padding:0;
-  }
-  .editor-body { padding:14px 16px; }
-  .editor-body.collapsed { display:none; }
-  .editor-tip {
-    font-size:11px; color:rgba(255,220,100,.85);
-    margin-bottom:10px; line-height:1.4;
-  }
-  .editor-row {
-    display:flex; align-items:center; gap:6px;
-    margin-bottom:8px;
-  }
-  .editor-row label {
-    width:64px; font-size:12px; color:rgba(255,255,255,.8);
-    flex-shrink:0;
-  }
-  .editor-row input[type=range] {
-    flex:1; min-width:0;
-    accent-color:#ffdc64;
-  }
-  .editor-row button {
-    width:22px; height:22px; padding:0;
-    background:rgba(255,255,255,.12);
-    border:1px solid rgba(255,255,255,.25);
-    border-radius:4px; color:#fff; cursor:pointer;
-    font-size:12px; line-height:1;
-  }
-  .editor-row button:hover { background:rgba(255,255,255,.22); }
-  .editor-row span {
-    width:42px; text-align:right; font-size:11px;
-    font-family:monospace; color:rgba(255,220,100,.9);
-    flex-shrink:0;
-  }
-  .editor-divider {
-    height:1px; background:rgba(255,255,255,.12); margin:10px 0;
-  }
-  .editor-action {
-    padding:6px 12px !important; width:auto !important; height:auto !important;
-    font-size:11px !important; border-radius:6px !important;
-  }
-  .editor-copy { background:rgba(255,220,100,.2) !important; }
-  .editor-copy:hover { background:rgba(255,220,100,.35) !important; }
-  .editor-note {
-    text-align:center; font-size:10px; color:rgba(255,255,255,.4);
-    margin-top:8px;
-  }
-
-  /* 单块调整面板 */
-  .piece-editor {
-    position:fixed; bottom:80px; right:24px; z-index:210;
-    width:300px;
-    background:rgba(10,20,35,.94);
-    border:1.5px solid rgba(100,180,255,.4);
-    border-radius:12px;
-    backdrop-filter:blur(10px);
-    color:#fff;
-    font-family:sans-serif;
-    font-size:13px;
-    display:none;
-    box-shadow:0 8px 24px rgba(0,0,0,.5);
-  }
-  .piece-editor.visible { display:block; }
-  .piece-editor-header {
-    display:flex; justify-content:space-between; align-items:center;
-    padding:10px 14px;
-    border-bottom:1px solid rgba(100,180,255,.2);
-    font-weight:500;
-  }
-  .piece-editor-header span { color:rgba(100,200,255,.9); }
-  .piece-editor-close {
-    background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.2);
-    color:#fff; width:22px; height:22px; border-radius:5px;
-    cursor:pointer; font-size:14px; line-height:1; padding:0;
-  }
-  .piece-editor-body { padding:12px 14px; }
-  
-  /* 拼图块选择网格 */
-  .piece-grid {
-    display:grid; grid-template-columns:repeat(4,1fr); gap:5px;
-    margin-bottom:12px;
-  }
-  .piece-btn {
-    padding:5px 0; text-align:center;
-    background:rgba(255,255,255,.08);
-    border:1px solid rgba(255,255,255,.15);
-    border-radius:5px; color:rgba(255,255,255,.7);
-    cursor:pointer; font-size:11px; font-family:sans-serif;
-    transition:all .15s;
-  }
-  .piece-btn:hover { background:rgba(100,180,255,.2); border-color:rgba(100,180,255,.5); }
-  .piece-btn.selected { background:rgba(100,180,255,.3); border-color:rgba(100,200,255,.8); color:#fff; font-weight:600; }
-  
-  .piece-editor-sliders { display:none; }
-  .piece-editor-sliders.visible { display:block; }
-  .pe-row {
-    display:flex; align-items:center; gap:5px; margin-bottom:7px;
-  }
-  .pe-row label {
-    width:52px; font-size:11px; color:rgba(255,255,255,.7); flex-shrink:0;
-  }
-  .pe-row input[type=range] { flex:1; min-width:0; accent-color:#64c8ff; }
-  .pe-row button {
-    width:20px; height:20px; padding:0;
-    background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.2);
-    border-radius:4px; color:#fff; cursor:pointer; font-size:11px; line-height:1;
-  }
-  .pe-row button:hover { background:rgba(100,180,255,.25); }
-  .pe-row span { width:46px; text-align:right; font-size:10px; font-family:monospace; color:rgba(100,200,255,.9); flex-shrink:0; }
-  .pe-divider { height:1px; background:rgba(255,255,255,.1); margin:8px 0; }
-  .pe-actions { display:flex; gap:6px; justify-content:center; margin-top:8px; flex-wrap:wrap; }
-  .pe-btn {
-    padding:5px 10px; font-size:11px; border-radius:6px;
-    background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.2);
-    color:#fff; cursor:pointer;
-  }
-  .pe-btn:hover { background:rgba(255,255,255,.2); }
-  .pe-btn.primary { background:rgba(100,180,255,.2); border-color:rgba(100,200,255,.5); }
-  .pe-note { font-size:10px; color:rgba(255,255,255,.35); text-align:center; margin-top:7px; }
-
-  /* 时钟场景文字提示 */
   .clock-caption {
-    position:absolute; z-index:30;
-    background:rgba(245,235,200,.92);
-    border:1px solid #0a1540;
-    border-radius:0;
-    padding:12px 22px;
-    max-width:400px;
-    text-align:center;
-    opacity:0;
-    transform:translateY(8px);
-    transition:opacity .8s ease, transform .8s ease;
-    pointer-events:none;
+    position:absolute; z-index:30; background:rgba(245,235,200,.92);
+    border:1px solid #0a1540; border-radius:0; padding:12px 22px; max-width:400px; text-align:center;
+    opacity:0; transform:translateY(8px); transition:opacity .8s ease,transform .8s ease; pointer-events:none;
   }
-  .clock-caption.visible {
-    opacity:1;
-    transform:translateY(0);
-  }
-  .clock-caption.hiding {
-    opacity:0;
-    transition:opacity .6s ease;
-  }
-  .clock-caption.left-top {
-    top:90px; left:130px;
-  }
-  .clock-caption.right-bottom {
-    bottom:60px; right:30px;
-  }
-  .caption-zh {
-    font-family:"STKaiti","KaiTi","楷体",Georgia,serif;
-    font-size:1rem;
-    color:#0a1540;
-    line-height:1.6;
-    margin:0 0 5px 0;
-  }
-  .caption-en {
-    font-family:Georgia,"Times New Roman",serif;
-    font-style:italic;
-    font-size:.78rem;
-    color:#0a1540;
-    line-height:1.5;
-    margin:0;
-  }
+  .clock-caption.visible { opacity:1; transform:translateY(0); }
+  .clock-caption.hiding { opacity:0; transition:opacity .6s ease; }
+  .clock-caption.left-top { top:90px; left:130px; }
+  .clock-caption.right-bottom { bottom:60px; right:30px; }
+  .caption-zh { font-family:"STKaiti","KaiTi","楷体",Georgia,serif; font-size:1rem; color:#0a1540; line-height:1.6; margin:0 0 5px 0; }
+  .caption-en { font-family:Georgia,"Times New Roman",serif; font-style:italic; font-size:.78rem; color:#0a1540; line-height:1.5; margin:0; }
 
-  /* 层级：模糊图(10) → canvas圆圈(15) → 透明画框(20) → UI(30) */
-  #blur-img {
-    position:absolute;
-    object-fit:cover;
-    z-index:10;
-    pointer-events:none;
-    filter:blur(8px) brightness(0.6) saturate(0.8);
-  }
-  #circle-canvas {
-    position:absolute;
-    z-index:15;
-    cursor:crosshair;
-    display:block;
-  }
-  #frame-img {
-    position:absolute; inset:0;
-    width:100%; height:100%;
-    object-fit:contain;
-    z-index:20;
-    pointer-events:none;
-  }
-
-  /* UI */
+  #blur-img { position:absolute; object-fit:cover; z-index:10; pointer-events:none; filter:blur(8px) brightness(0.6) saturate(0.8); }
+  #circle-canvas { position:absolute; z-index:15; cursor:crosshair; display:block; }
+  #frame-img { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; z-index:20; pointer-events:none; }
   .ui { position:absolute; inset:0; z-index:30; pointer-events:none; }
   .ui > * { pointer-events:all; }
-
   .act-title {
     position:absolute; top:22px; left:50%; transform:translateX(-50%);
     color:rgba(255,255,255,.9); font-size:1.05rem; font-family:sans-serif;
-    letter-spacing:.12em; padding:7px 22px;
-    background:rgba(180,160,120,.25);
-    border:1.5px solid rgba(255,255,255,.35);
-    border-radius:14px; backdrop-filter:blur(8px);
-  }
-  .ctrl-bar {
-    position:absolute; top:22px; left:24px;
-    display:flex; flex-direction:row; gap:12px;
-  }
-  .ctrl-btn {
-    padding:8px 24px;
-    background:rgba(255,255,255,.18);
-    border:1.5px solid rgba(255,255,255,.6);
-    border-radius:14px;
-    color:#fff; font-size:.96rem; font-family:sans-serif;
-    cursor:pointer; backdrop-filter:blur(10px);
-    transition:background .2s, border-color .2s;
-    letter-spacing:.05em;
-  }
-  .ctrl-btn:hover {
-    background:rgba(255,255,255,.35);
-    border-color:#fff;
+    letter-spacing:.12em; padding:7px 22px; background:rgba(180,160,120,.25);
+    border:1.5px solid rgba(255,255,255,.35); border-radius:14px; backdrop-filter:blur(8px);
   }
   .arrow {
     position:absolute; top:50%; transform:translateY(-50%);
-    background:rgba(180,160,120,.18);
-    border:1.5px solid rgba(255,255,255,.35);
-    color:rgba(255,255,255,.9); font-size:2rem;
-    width:54px; height:54px; border-radius:50%;
+    background:rgba(180,160,120,.18); border:1.5px solid rgba(255,255,255,.35);
+    color:rgba(255,255,255,.9); font-size:2rem; width:54px; height:54px; border-radius:50%;
     cursor:pointer; display:flex; align-items:center; justify-content:center;
     transition:background .2s; backdrop-filter:blur(8px);
   }
   .arrow:hover { background:rgba(180,160,120,.4); }
-  .arrow-left  { left:16px; }
+  .arrow-left { left:16px; }
   .arrow-right { right:80px; }
   .act-indicator {
     position:absolute; bottom:26px; left:50%; transform:translateX(-50%);
-    display:flex; gap:14px; padding:9px 18px;
-    background:rgba(180,160,120,.22);
-    border:1px solid rgba(255,255,255,.25);
-    border-radius:20px; backdrop-filter:blur(8px);
+    display:flex; gap:14px; padding:9px 18px; background:rgba(180,160,120,.22);
+    border:1px solid rgba(255,255,255,.25); border-radius:20px; backdrop-filter:blur(8px);
   }
-  .dot {
-    width:11px; height:11px; border-radius:50%;
-    background:rgba(255,255,255,.35); cursor:pointer;
-    transition:background .2s,transform .2s;
-  }
+  .dot { width:11px; height:11px; border-radius:50%; background:rgba(255,255,255,.35); cursor:pointer; transition:background .2s,transform .2s; }
   .dot.active { background:rgba(255,220,100,.9); transform:scale(1.35); }
-
   .frame-hint {
-    position:absolute;
-    right:188px; top:50%; transform:translateY(-50%);
-    background:rgba(40,32,20,.55);
-    color:#fff;
-    font-family:"STSong","SimSun","宋体",serif;
-    font-size:1.05rem;
-    letter-spacing:.2em;
-    writing-mode:vertical-rl;
-    text-orientation:mixed;
-    padding:18px 11px;
-    border-radius:9999px;
-    z-index:35;
-    pointer-events:none;
-    opacity:0;
-    transition:opacity .6s ease;
+    position:absolute; right:188px; top:50%; transform:translateY(-50%);
+    background:rgba(40,32,20,.55); color:#fff;
+    font-family:"STSong","SimSun","宋体",serif; font-size:1.05rem;
+    letter-spacing:.2em; writing-mode:vertical-rl; text-orientation:mixed;
+    padding:18px 11px; border-radius:9999px; z-index:35; pointer-events:none;
+    opacity:0; transition:opacity .6s ease;
   }
   .frame-hint.visible { opacity:1; }
-  .frame-hint.hiding  { opacity:0; transition:opacity .5s ease; }
+  .frame-hint.hiding { opacity:0; transition:opacity .5s ease; }
 
-  .fade-overlay {
-    position:fixed; inset:0; background:#000; opacity:0;
-    pointer-events:none; z-index:100; transition:opacity .5s;
-  }
+  .fade-overlay { position:fixed; inset:0; background:#000; opacity:0; pointer-events:none; z-index:100; transition:opacity .5s; }
   .fade-overlay.show { opacity:1; pointer-events:all; }
+
+  /* ===== 城堡视频层 ===== */
+  #castle-video-wrap {
+    position:fixed; inset:0; z-index:200;
+    background:#000; display:none;
+  }
+  #castle-video-wrap video {
+    width:100%; height:100%; object-fit:cover;
+  }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
 </head>
 <body>
 <div class="fade-overlay" id="overlay"></div>
 
+<!-- 城堡视频层 -->
+<div id="castle-video-wrap">
+  <video id="castle-video" src="videos/城堡.mp4" playsinline muted></video>
+</div>
+
 <!-- 卧室 -->
 <div id="scene-bedroom" class="scene active">
-  <div class="hint-label">点击画框 ▼</div>
+  <div id="hint-table" class="hint-label">点击桌上物品</div>
+  <div id="hint-clock" class="hint-label">时钟？</div>
+  <div id="hint-next"  class="hint-label">next</div>
   <div id="frame-hotspot"></div>
   <div id="clock-hotspot"></div>
-  <div id="puzzle-hotspot" title="点击桌上的拼图"></div>
-<div id="door-hotspot"></div>
+  <div id="puzzle-hotspot"></div>
+  <div id="door-hotspot"></div>
 </div>
 
 <!-- 时钟场景 -->
@@ -463,7 +165,7 @@
 
 <!-- 画框场景 -->
 <div id="scene-frame" class="scene">
-  <img id="blur-img"     src="" alt="">
+  <img id="blur-img" src="" alt="">
   <canvas id="circle-canvas"></canvas>
   <img id="frame-img" src="images5/画框透明.png" alt="">
   <div class="ui">
@@ -472,7 +174,7 @@
       <button class="scene-back-btn" onclick="closeFrame()">← 返回</button>
       <button class="scene-reset-btn" onclick="resetReveal()">重置</button>
     </div>
-    <button class="arrow arrow-left"  onclick="prevAct()">‹</button>
+    <button class="arrow arrow-left" onclick="prevAct()">‹</button>
     <button class="arrow arrow-right" onclick="nextAct()">›</button>
     <div id="frame-hint" class="frame-hint">快刮开它吧</div>
     <div class="act-indicator" id="actIndicator"></div>
@@ -492,1079 +194,175 @@
   </div>
 </div>
 
-<!-- 调整面板已移除 -->
-
-<!-- 单块调整面板已移除 -->
-
-<!-- 整体调整面板已移除 -->
-
 <script>
-/* ============================================================
-   原有：画框场景 & 时钟场景代码（保持不变）
-   ============================================================ */
-const FRAME_W=528, FRAME_H=300;
-const IN_L=111, IN_T=39, IN_R=412, IN_B=266;
-const IN_W=IN_R-IN_L, IN_H=IN_B-IN_T;
-
+/* ===== 画框场景 ===== */
+const FRAME_W=528,FRAME_H=300;
+const IN_L=111,IN_T=39,IN_R=412,IN_B=266;
+const IN_W=IN_R-IN_L,IN_H=IN_B-IN_T;
 const ACT_IMAGES=['images5/1幕.PNG','images5/2幕.PNG','images5/3幕.PNG','images5/4幕.JPG','images5/5幕.PNG'];
 const ACT_NAMES=['第 1 幕','第 2 幕','第 3 幕','第 4 幕','第 5 幕'];
+const SPLIT_MS=320,MIN_HALF=0.4;
+let currentAct=0,roots=[],ready=false;
+let mouseX=-9999,mouseY=-9999;
+let cachedPixels=null,cachedW=0,cachedH=0;
+const actStates={};
+const blurImg=document.getElementById('blur-img');
+const canvas=document.getElementById('circle-canvas');
+const ctx=canvas.getContext('2d',{willReadFrequently:true});
 
-const SPLIT_MS=320, MIN_HALF=0.4;
-
-let currentAct=0, roots=[], ready=false;
-let mouseX=-9999, mouseY=-9999;
-let cachedPixels=null, cachedW=0, cachedH=0;
-const actStates = {};
-
-const blurImg     = document.getElementById('blur-img');
-const canvas      = document.getElementById('circle-canvas');
-const ctx         = canvas.getContext('2d', {willReadFrequently:true});
-
-function getInner() {
-  const vw=window.innerWidth, vh=window.innerHeight;
-  const scale=Math.min(vw/FRAME_W, vh/FRAME_H);
-  const fx=(vw-FRAME_W*scale)/2, fy=(vh-FRAME_H*scale)/2;
-  return {
-    x: Math.round(fx+IN_L*scale),
-    y: Math.round(fy+IN_T*scale),
-    w: Math.round(IN_W*scale),
-    h: Math.round(IN_H*scale),
-  };
-}
-
-function applyLayout() {
-  const {x,y,w,h}=getInner();
-  [blurImg, canvas].forEach(el=>{
-    el.style.left=x+'px'; el.style.top=y+'px';
-    el.style.width=w+'px'; el.style.height=h+'px';
-  });
-  canvas.width=w; canvas.height=h;
-}
-
-function getColor(x,y) {
-  if(!cachedPixels) return [130,130,130];
-  const px=Math.max(0,Math.min(cachedW-1,x|0));
-  const py=Math.max(0,Math.min(cachedH-1,y|0));
-  const i=(py*cachedW+px)*4;
-  return [cachedPixels[i],cachedPixels[i+1],cachedPixels[i+2]];
-}
+function getInner(){const vw=window.innerWidth,vh=window.innerHeight;const scale=Math.min(vw/FRAME_W,vh/FRAME_H);const fx=(vw-FRAME_W*scale)/2,fy=(vh-FRAME_H*scale)/2;return{x:Math.round(fx+IN_L*scale),y:Math.round(fy+IN_T*scale),w:Math.round(IN_W*scale),h:Math.round(IN_H*scale)};}
+function applyLayout(){const{x,y,w,h}=getInner();[blurImg,canvas].forEach(el=>{el.style.left=x+'px';el.style.top=y+'px';el.style.width=w+'px';el.style.height=h+'px';});canvas.width=w;canvas.height=h;}
+function getColor(x,y){if(!cachedPixels)return[130,130,130];const px=Math.max(0,Math.min(cachedW-1,x|0)),py=Math.max(0,Math.min(cachedH-1,y|0));const i=(py*cachedW+px)*4;return[cachedPixels[i],cachedPixels[i+1],cachedPixels[i+2]];}
 const cs=([r,g,b])=>`rgb(${r},${g},${b})`;
-function eob(t){ return 1 - Math.pow(1-t, 3); }
-
-class Cell {
-  constructor(cx,cy,r){
-    this.cx=cx; this.cy=cy; this.r=r;
-    this.rgb=getColor(cx,cy);
-    this.children=null; this.anim=false; this.t0=0; this.prog=0;
-  }
-  hovered(){
-    const dx=mouseX-this.cx,dy=mouseY-this.cy;
-    return !this.anim&&!this.children&&(dx*dx+dy*dy)<this.r*this.r;
-  }
-  update(now){
-    if(this.children){this.children.forEach(c=>c.update(now));return;}
-    if(this.anim){
-      this.prog=(now-this.t0)/SPLIT_MS;
-      if(this.prog>=1){
-        this.anim=false;this.prog=0;
-        const nr=this.r/2;
-        this.children=[
-          new Cell(this.cx-nr,this.cy-nr,nr),
-          new Cell(this.cx+nr,this.cy-nr,nr),
-          new Cell(this.cx-nr,this.cy+nr,nr),
-          new Cell(this.cx+nr,this.cy+nr,nr),
-        ];
-      }
-      return;
-    }
-    if(this.hovered()&&this.r/2>=MIN_HALF){
-      this.anim=true;this.t0=now;
-    }
-  }
-  draw(){
-    if(this.children){this.children.forEach(c=>c.draw());return;}
-    if(this.anim){
-      const t=Math.min(this.prog,1),e=eob(t);
-      const nr=this.r/2;
-      ctx.save();ctx.globalAlpha=Math.max(0,1-t);
-      circle(this.cx,this.cy,this.r*(1-t),cs(this.rgb));ctx.restore();
-      [[-nr,-nr],[nr,-nr],[-nr,nr],[nr,nr]].forEach(([ox,oy])=>{
-        const ccx=this.cx+ox*e,ccy=this.cy+oy*e;
-        const cr=nr*e;
-        if(cr<.3)return;
-        ctx.save();ctx.globalAlpha=t;
-        circle(ccx,ccy,cr,cs(getColor(ccx,ccy)));ctx.restore();
-      });
-    } else {
-      circle(this.cx,this.cy,this.r,cs(this.rgb));
-    }
-  }
+function eob(t){return 1-Math.pow(1-t,3);}
+class Cell{
+  constructor(cx,cy,r){this.cx=cx;this.cy=cy;this.r=r;this.rgb=getColor(cx,cy);this.children=null;this.anim=false;this.t0=0;this.prog=0;}
+  hovered(){const dx=mouseX-this.cx,dy=mouseY-this.cy;return!this.anim&&!this.children&&(dx*dx+dy*dy)<this.r*this.r;}
+  update(now){if(this.children){this.children.forEach(c=>c.update(now));return;}if(this.anim){this.prog=(now-this.t0)/SPLIT_MS;if(this.prog>=1){this.anim=false;this.prog=0;const nr=this.r/2;this.children=[new Cell(this.cx-nr,this.cy-nr,nr),new Cell(this.cx+nr,this.cy-nr,nr),new Cell(this.cx-nr,this.cy+nr,nr),new Cell(this.cx+nr,this.cy+nr,nr)];}return;}if(this.hovered()&&this.r/2>=MIN_HALF){this.anim=true;this.t0=now;}}
+  draw(){if(this.children){this.children.forEach(c=>c.draw());return;}if(this.anim){const t=Math.min(this.prog,1),e=eob(t),nr=this.r/2;ctx.save();ctx.globalAlpha=Math.max(0,1-t);circle(this.cx,this.cy,this.r*(1-t),cs(this.rgb));ctx.restore();[[-nr,-nr],[nr,-nr],[-nr,nr],[nr,nr]].forEach(([ox,oy])=>{const ccx=this.cx+ox*e,ccy=this.cy+oy*e,cr=nr*e;if(cr<.3)return;ctx.save();ctx.globalAlpha=t;circle(ccx,ccy,cr,cs(getColor(ccx,ccy)));ctx.restore();});}else{circle(this.cx,this.cy,this.r,cs(this.rgb));}}
 }
-
-function circle(cx,cy,r,color){
-  if(r<.3)return;
-  ctx.beginPath();
-  ctx.arc(cx,cy,r,0,Math.PI*2);
-  ctx.fillStyle=color;ctx.fill();
-}
-
-function buildRoots(){
-  const w=canvas.width,h=canvas.height;
-  if(w<2||h<2)return;
-  roots=[];
-  const r=Math.min(w,h)/2;
-  roots.push(new Cell(w/2, h/2, r));
-  ready=true;
-}
-
-function resetReveal(){
-  delete actStates[currentAct];
-  ready=false; cachedPixels=null; roots=[];
-  const idx=currentAct;
-  const img=new Image();
-  img.onload=()=>{
-    const w=canvas.width,h=canvas.height;
-    const off=document.createElement('canvas');off.width=w;off.height=h;
-    const octx=off.getContext('2d',{willReadFrequently:true});
-    const sc=Math.max(w/img.naturalWidth,h/img.naturalHeight);
-    const sw=img.naturalWidth*sc,sh=img.naturalHeight*sc;
-    octx.drawImage(img,(w-sw)/2,(h-sh)/2,sw,sh);
-    const d=octx.getImageData(0,0,w,h);
-    cachedPixels=d.data;cachedW=w;cachedH=h;
-    buildRoots();
-  };
-  img.src=ACT_IMAGES[idx];
-}
-
-function saveState(index){
-  if(roots.length>0){
-    actStates[index]={roots:[...roots], cachedPixels, cachedW, cachedH};
-  }
-}
-
-function loadAct(index){
-  saveState(currentAct);
-  currentAct=index;
-  document.getElementById('actTitle').textContent=ACT_NAMES[index];
-  updateDots();
-  blurImg.src=ACT_IMAGES[index];
-
-  if(actStates[index]){
-    const s=actStates[index];
-    roots=s.roots; cachedPixels=s.cachedPixels; cachedW=s.cachedW; cachedH=s.cachedH;
-    ready=true;
-    return;
-  }
-
-  cachedPixels=null; ready=false; roots=[];
-  const img=new Image();
-  img.onload=()=>{
-    const w=canvas.width,h=canvas.height;
-    if(w<2||h<2){setTimeout(()=>loadAct(index),50);return;}
-    const off=document.createElement('canvas');
-    off.width=w;off.height=h;
-    const octx=off.getContext('2d',{willReadFrequently:true});
-    const sc=Math.max(w/img.naturalWidth,h/img.naturalHeight);
-    const sw=img.naturalWidth*sc,sh=img.naturalHeight*sc;
-    octx.drawImage(img,(w-sw)/2,(h-sh)/2,sw,sh);
-    const d=octx.getImageData(0,0,w,h);
-    cachedPixels=d.data; cachedW=w; cachedH=h;
-    buildRoots();
-  };
-  img.onerror=()=>{
-    const w=canvas.width,h=canvas.height;
-    const pals=[['#2a1a3e','#8a4a9e'],['#1a2e3e','#3a8aae'],['#1a3e2a','#3aae6a'],['#3e2a1a','#ae6a3a'],['#3e1a2a','#ae3a6a']];
-    const [c1,c2]=pals[index%5];
-    const off=document.createElement('canvas');off.width=w;off.height=h;
-    const octx=off.getContext('2d');
-    const g=octx.createLinearGradient(0,0,w,h);
-    g.addColorStop(0,c1);g.addColorStop(1,c2);
-    octx.fillStyle=g;octx.fillRect(0,0,w,h);
-    const d=octx.getImageData(0,0,w,h);
-    cachedPixels=d.data;cachedW=w;cachedH=h;
-    buildRoots();
-  };
-  img.src=ACT_IMAGES[index];
-}
-
+function circle(cx,cy,r,color){if(r<.3)return;ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();}
+function buildRoots(){const w=canvas.width,h=canvas.height;if(w<2||h<2)return;roots=[];const r=Math.min(w,h)/2;roots.push(new Cell(w/2,h/2,r));ready=true;}
+function resetReveal(){delete actStates[currentAct];ready=false;cachedPixels=null;roots=[];const idx=currentAct,img=new Image();img.onload=()=>{const w=canvas.width,h=canvas.height;const off=document.createElement('canvas');off.width=w;off.height=h;const octx=off.getContext('2d',{willReadFrequently:true});const sc=Math.max(w/img.naturalWidth,h/img.naturalHeight);const sw=img.naturalWidth*sc,sh=img.naturalHeight*sc;octx.drawImage(img,(w-sw)/2,(h-sh)/2,sw,sh);const d=octx.getImageData(0,0,w,h);cachedPixels=d.data;cachedW=w;cachedH=h;buildRoots();};img.src=ACT_IMAGES[idx];}
+function saveState(index){if(roots.length>0)actStates[index]={roots:[...roots],cachedPixels,cachedW,cachedH};}
+function loadAct(index){saveState(currentAct);currentAct=index;document.getElementById('actTitle').textContent=ACT_NAMES[index];updateDots();blurImg.src=ACT_IMAGES[index];if(actStates[index]){const s=actStates[index];roots=s.roots;cachedPixels=s.cachedPixels;cachedW=s.cachedW;cachedH=s.cachedH;ready=true;return;}cachedPixels=null;ready=false;roots=[];const img=new Image();img.onload=()=>{const w=canvas.width,h=canvas.height;if(w<2||h<2){setTimeout(()=>loadAct(index),50);return;}const off=document.createElement('canvas');off.width=w;off.height=h;const octx=off.getContext('2d',{willReadFrequently:true});const sc=Math.max(w/img.naturalWidth,h/img.naturalHeight);const sw=img.naturalWidth*sc,sh=img.naturalHeight*sc;octx.drawImage(img,(w-sw)/2,(h-sh)/2,sw,sh);const d=octx.getImageData(0,0,w,h);cachedPixels=d.data;cachedW=w;cachedH=h;buildRoots();};img.onerror=()=>{const w=canvas.width,h=canvas.height;const pals=[['#2a1a3e','#8a4a9e'],['#1a2e3e','#3a8aae'],['#1a3e2a','#3aae6a'],['#3e2a1a','#ae6a3a'],['#3e1a2a','#ae3a6a']];const[c1,c2]=pals[index%5];const off=document.createElement('canvas');off.width=w;off.height=h;const octx=off.getContext('2d');const g=octx.createLinearGradient(0,0,w,h);g.addColorStop(0,c1);g.addColorStop(1,c2);octx.fillStyle=g;octx.fillRect(0,0,w,h);const d=octx.getImageData(0,0,w,h);cachedPixels=d.data;cachedW=w;cachedH=h;buildRoots();};img.src=ACT_IMAGES[index];}
 function prevAct(){loadAct((currentAct-1+5)%5);}
 function nextAct(){loadAct((currentAct+1)%5);}
-
-function updateDots(){
-  const bar=document.getElementById('actIndicator');bar.innerHTML='';
-  ACT_IMAGES.forEach((_,i)=>{
-    const d=document.createElement('div');
-    d.className='dot'+(i===currentAct?' active':'');
-    d.onclick=()=>loadAct(i);bar.appendChild(d);
-  });
-}
-
-canvas.addEventListener('mousemove',e=>{
-  const r=canvas.getBoundingClientRect();
-  mouseX=e.clientX-r.left; mouseY=e.clientY-r.top;
-});
+function updateDots(){const bar=document.getElementById('actIndicator');bar.innerHTML='';ACT_IMAGES.forEach((_,i)=>{const d=document.createElement('div');d.className='dot'+(i===currentAct?' active':'');d.onclick=()=>loadAct(i);bar.appendChild(d);});}
+canvas.addEventListener('mousemove',e=>{const r=canvas.getBoundingClientRect();mouseX=e.clientX-r.left;mouseY=e.clientY-r.top;});
 canvas.addEventListener('mouseleave',()=>{mouseX=-9999;mouseY=-9999;});
-canvas.addEventListener('touchmove',e=>{
-  e.preventDefault();
-  const r=canvas.getBoundingClientRect(),t=e.touches[0];
-  mouseX=t.clientX-r.left;mouseY=t.clientY-r.top;
-},{passive:false});
+canvas.addEventListener('touchmove',e=>{e.preventDefault();const r=canvas.getBoundingClientRect(),t=e.touches[0];mouseX=t.clientX-r.left;mouseY=t.clientY-r.top;},{passive:false});
 canvas.addEventListener('touchend',()=>{mouseX=-9999;mouseY=-9999;});
-
-window.addEventListener('resize',()=>{
-  if(document.getElementById('scene-frame').classList.contains('active')){
-    applyLayout();loadAct(currentAct);
-  }
-  if(document.getElementById('scene-puzzle').classList.contains('active')){
-    resizePuzzleCanvas();
-  }
-});
-
-function animate(now){
-  requestAnimationFrame(animate);
-  if(!ready||canvas.width===0||canvas.height===0)return;
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  roots.forEach(c=>{c.update(now);c.draw();});
-}
+window.addEventListener('resize',()=>{if(document.getElementById('scene-frame').classList.contains('active')){applyLayout();loadAct(currentAct);}if(document.getElementById('scene-puzzle').classList.contains('active')){resizePuzzleCanvas();}});
+function animate(now){requestAnimationFrame(animate);if(!ready||canvas.width===0||canvas.height===0)return;ctx.clearRect(0,0,canvas.width,canvas.height);roots.forEach(c=>{c.update(now);c.draw();});}
 
 const overlay=document.getElementById('overlay');
-function fadeTo(fn){
-  overlay.classList.add('show');
-  setTimeout(()=>{fn();setTimeout(()=>overlay.classList.remove('show'),80);},500);
-}
+function fadeTo(fn){overlay.classList.add('show');setTimeout(()=>{fn();setTimeout(()=>overlay.classList.remove('show'),80);},500);}
 
-document.getElementById('frame-hotspot').addEventListener('click',()=>{
-  fadeTo(()=>{
-    document.getElementById('scene-bedroom').classList.remove('active');
-    document.getElementById('scene-frame').classList.add('active');
-    applyLayout();
-    loadAct(0);
-    const hint = document.getElementById('frame-hint');
-    hint.classList.remove('visible','hiding');
-    setTimeout(()=>{
-      hint.classList.add('visible');
-      setTimeout(()=>hint.classList.add('hiding'), 6000);
-    }, 400);
-  });
-});
+document.getElementById('frame-hotspot').addEventListener('click',()=>{fadeTo(()=>{document.getElementById('scene-bedroom').classList.remove('active');document.getElementById('scene-frame').classList.add('active');applyLayout();loadAct(0);const hint=document.getElementById('frame-hint');hint.classList.remove('visible','hiding');setTimeout(()=>{hint.classList.add('visible');setTimeout(()=>hint.classList.add('hiding'),6000);},400);});});
+function closeFrame(){fadeTo(()=>{document.getElementById('scene-frame').classList.remove('active');document.getElementById('scene-bedroom').classList.add('active');mouseX=-9999;mouseY=-9999;});}
+document.addEventListener('keydown',e=>{if(!document.getElementById('scene-frame').classList.contains('active'))return;if(e.key==='ArrowLeft')prevAct();if(e.key==='ArrowRight')nextAct();if(e.key==='Escape')closeFrame();});
 
-function closeFrame(){
-  fadeTo(()=>{
-    document.getElementById('scene-frame').classList.remove('active');
-    document.getElementById('scene-bedroom').classList.add('active');
-    mouseX=-9999;mouseY=-9999;
-  });
-}
-
-document.addEventListener('keydown',e=>{
-  if(!document.getElementById('scene-frame').classList.contains('active'))return;
-  if(e.key==='ArrowLeft') prevAct();
-  if(e.key==='ArrowRight')nextAct();
-  if(e.key==='Escape')    closeFrame();
-});
-
-document.getElementById('clock-hotspot').addEventListener('click',()=>{
-  fadeTo(()=>{
-    document.getElementById('scene-bedroom').classList.remove('active');
-    document.getElementById('scene-clock').classList.add('active');
-    initClock();
-  });
-});
-
-function closeClock(){
-  fadeTo(()=>{
-    document.getElementById('scene-clock').classList.remove('active');
-    document.getElementById('scene-bedroom').classList.add('active');
-    if(window._clockRAF){ cancelAnimationFrame(window._clockRAF); window._clockRAF=null; }
-    if(window._clockCanvas){ window._clockCanvas.remove(); window._clockCanvas=null; }
-    window._clockInited=false;
-    document.getElementById('p5-container').innerHTML='';
-  });
-}
-
+/* ===== 时钟场景 ===== */
+document.getElementById('clock-hotspot').addEventListener('click',()=>{fadeTo(()=>{document.getElementById('scene-bedroom').classList.remove('active');document.getElementById('scene-clock').classList.add('active');initClock();});});
+function closeClock(){fadeTo(()=>{document.getElementById('scene-clock').classList.remove('active');document.getElementById('scene-bedroom').classList.add('active');if(window._clockRAF){cancelAnimationFrame(window._clockRAF);window._clockRAF=null;}if(window._clockCanvas){window._clockCanvas.remove();window._clockCanvas=null;}window._clockInited=false;document.getElementById('p5-container').innerHTML='';});}
 function initClock(){
-  if(window._clockInited) return;
-  window._clockInited = true;
-
-  const txt1 = document.getElementById('clock-text-1');
-  const txt2 = document.getElementById('clock-text-2');
-  txt1.classList.remove('visible');
-  txt2.classList.remove('visible');
-  let secLaps = 0;
-  let prevSecAngleRaw = null;
-  let txt2Shown = false;
-  const nowEntry = new Date();
-  if(nowEntry.getSeconds() === 0){
-    setTimeout(()=>txt1.classList.add('visible'), 100);
-  } else {
-    const msToNext = (60 - nowEntry.getSeconds())*1000 - nowEntry.getMilliseconds();
-    setTimeout(()=>txt1.classList.add('visible'), msToNext);
-  }
-  setTimeout(()=>{
-    txt1.classList.add('visible');
-    setTimeout(()=>txt1.classList.add('hiding'), 6000);
-  }, 300);
-
-  const IMG_W=1799, IMG_H=1300;
-  const CX_P=0.4908, CY_P=0.4990, R_P=0.2088;
-  function getCircle(){
-    const vw=window.innerWidth, vh=window.innerHeight;
-    const sc=Math.max(vw/IMG_W, vh/IMG_H);
-    const iw=IMG_W*sc, ih=IMG_H*sc;
-    return { cx:(vw-iw)/2+CX_P*iw, cy:(vh-ih)/2+CY_P*ih, r:R_P*iw };
-  }
-
-  const {Engine,Bodies,Body,Composite}=Matter;
+  if(window._clockInited)return;window._clockInited=true;
+  const txt1=document.getElementById('clock-text-1');const txt2=document.getElementById('clock-text-2');
+  txt1.classList.remove('visible');txt2.classList.remove('visible');
+  let secLaps=0,txt2Shown=false;
+  const nowEntry=new Date();
+  if(nowEntry.getSeconds()===0){setTimeout(()=>txt1.classList.add('visible'),100);}
+  else{const msToNext=(60-nowEntry.getSeconds())*1000-nowEntry.getMilliseconds();setTimeout(()=>txt1.classList.add('visible'),msToNext);}
+  setTimeout(()=>{txt1.classList.add('visible');setTimeout(()=>txt1.classList.add('hiding'),6000);},300);
+  const IMG_W=1799,IMG_H=1300,CX_P=0.4908,CY_P=0.4990,R_P=0.2088;
+  function getCircle(){const vw=window.innerWidth,vh=window.innerHeight;const sc=Math.max(vw/IMG_W,vh/IMG_H);const iw=IMG_W*sc,ih=IMG_H*sc;return{cx:(vw-iw)/2+CX_P*iw,cy:(vh-ih)/2+CY_P*ih,r:R_P*iw};}
+  const{Engine,Bodies,Body,Composite}=Matter;
   const engine=Engine.create({gravity:{x:0,y:1.8}});
-
-  const cnv=document.createElement('canvas');
-  cnv.width=window.innerWidth; cnv.height=window.innerHeight;
-  cnv.style.cssText='position:absolute;top:0;left:0;z-index:15;';
-  document.getElementById('p5-container').appendChild(cnv);
-  window._clockCanvas=cnv;
+  const cnv=document.createElement('canvas');cnv.width=window.innerWidth;cnv.height=window.innerHeight;cnv.style.cssText='position:absolute;top:0;left:0;z-index:15;';
+  document.getElementById('p5-container').appendChild(cnv);window._clockCanvas=cnv;
   const ctx=cnv.getContext('2d');
-
-  let {cx,cy,r}=getCircle();
-  let numBodies=[], wallBodies=[];
-  let draggingSec=false, dragBody=null, dox=0, doy=0;
+  let{cx,cy,r}=getCircle();let numBodies=[],wallBodies=[];
+  let draggingSec=false,dragBody=null,dox=0,doy=0;
   let secAngle=(new Date().getSeconds()/60)*Math.PI*2-Math.PI/2;
-
-  const NUM_IMGS = {};
-  let numLoadCount = 0, numReady = false;
-  for(let n=1; n<=12; n++){
-    const img = new Image();
-    img.src = 'images5/num' + String(n).padStart(2,'0') + '.png';
-    img.onload = ()=>{ numLoadCount++; if(numLoadCount===12) numReady=true; };
-    NUM_IMGS[n] = img;
-  }
-  const handImg=new Image(); handImg.src='images5/指针.png';
-  let handReady=false;
-  handImg.onload=()=>{handReady=true;};
-
-  const HANDS = [
-    {sx:420,  sy:477, sw:86,  sh:393, anchor:0.847},
-    {sx:703,  sy:180, sw:102, sh:689, anchor:0.848},
-    {sx:1064, sy:97,  sw:90,  sh:776, anchor:0.848},
-  ];
-
-  function buildWalls(){
-    wallBodies.forEach(b=>Composite.remove(engine.world,b));
-    wallBodies=[];
-    const N=80, wallR=r*0.87, thick=r*0.1;
-    for(let i=0;i<N;i++){
-      const a=(i+.5)/N*Math.PI*2;
-      const mx=cx+Math.cos(a)*(wallR+thick/2);
-      const my=cy+Math.sin(a)*(wallR+thick/2);
-      const len=2*(wallR+thick)*Math.sin(Math.PI/N)+2;
-      wallBodies.push(Bodies.rectangle(mx,my,len,thick,{
-        isStatic:true, angle:a+Math.PI/2,
-        collisionFilter:{category:2,mask:1}, friction:0.6, restitution:0.3
-      }));
-    }
-    Composite.add(engine.world,wallBodies);
-  }
-
-  function spawnNums(){
-    numBodies.forEach(b=>Composite.remove(engine.world,b));
-    numBodies=[];
-    for(let n=1;n<=12;n++){
-      const numI=NUM_IMGS[n];
-      const aspect=(numI.naturalWidth||1)/(numI.naturalHeight||1);
-      const bh=r*(0.18+Math.random()*0.12), bw=bh*aspect;
-      const ang=(n/12)*Math.PI*2-Math.PI/2;
-      const dist=r*(0.1+Math.random()*0.3);
-      const b=Bodies.rectangle(
-        cx+Math.cos(ang)*dist, cy+Math.sin(ang)*dist,
-        bw, bh, {
-          restitution:0.3, friction:0.65, frictionAir:0.02,
-          angle:Math.random()*0.3-0.15,
-          collisionFilter:{category:1,mask:7}, density:0.004
-        }
-      );
-      b._n=n; b._bw=bw; b._bh=bh;
-      numBodies.push(b);
-      Composite.add(engine.world,b);
-    }
-  }
-
-  let handBodies = [];
-  const HAND_LENS = [r*0.38, r*0.52, r*0.65];
-  const HAND_WIDTHS = [r*0.045, r*0.032, r*0.02];
-  function buildHandBodies(){
-    handBodies.forEach(b=>Composite.remove(engine.world,b));
-    handBodies=[];
-    HAND_LENS.forEach((len,i)=>{
-      const b=Bodies.rectangle(cx+len/2, cy, len, HAND_WIDTHS[i], {
-        isStatic:true,
-        collisionFilter:{category:4, mask:1},
-        friction:0.4, restitution:0.5,
-        label:'hand'
-      });
-      handBodies.push(b);
-      Composite.add(engine.world,b);
-    });
-  }
+  const NUM_IMGS={};let numLoadCount=0,numReady=false;
+  for(let n=1;n<=12;n++){const img=new Image();img.src='images5/num'+String(n).padStart(2,'0')+'.png';img.onload=()=>{numLoadCount++;if(numLoadCount===12)numReady=true;};NUM_IMGS[n]=img;}
+  const handImg=new Image();handImg.src='images5/指针.png';let handReady=false;handImg.onload=()=>{handReady=true;};
+  const HANDS=[{sx:420,sy:477,sw:86,sh:393,anchor:0.847},{sx:703,sy:180,sw:102,sh:689,anchor:0.848},{sx:1064,sy:97,sw:90,sh:776,anchor:0.848}];
+  function buildWalls(){wallBodies.forEach(b=>Composite.remove(engine.world,b));wallBodies=[];const N=80,wallR=r*0.87,thick=r*0.1;for(let i=0;i<N;i++){const a=(i+.5)/N*Math.PI*2;const mx=cx+Math.cos(a)*(wallR+thick/2),my=cy+Math.sin(a)*(wallR+thick/2);const len=2*(wallR+thick)*Math.sin(Math.PI/N)+2;wallBodies.push(Bodies.rectangle(mx,my,len,thick,{isStatic:true,angle:a+Math.PI/2,collisionFilter:{category:2,mask:1},friction:0.6,restitution:0.3}));}Composite.add(engine.world,wallBodies);}
+  function spawnNums(){numBodies.forEach(b=>Composite.remove(engine.world,b));numBodies=[];for(let n=1;n<=12;n++){const numI=NUM_IMGS[n];const aspect=(numI.naturalWidth||1)/(numI.naturalHeight||1);const bh=r*(0.18+Math.random()*0.12),bw=bh*aspect;const ang=(n/12)*Math.PI*2-Math.PI/2,dist=r*(0.1+Math.random()*0.3);const b=Bodies.rectangle(cx+Math.cos(ang)*dist,cy+Math.sin(ang)*dist,bw,bh,{restitution:0.3,friction:0.65,frictionAir:0.02,angle:Math.random()*0.3-0.15,collisionFilter:{category:1,mask:7},density:0.004});b._n=n;b._bw=bw;b._bh=bh;numBodies.push(b);Composite.add(engine.world,b);}}
+  let handBodies=[];
+  const HAND_LENS=[r*0.38,r*0.52,r*0.65],HAND_WIDTHS=[r*0.045,r*0.032,r*0.02];
+  function buildHandBodies(){handBodies.forEach(b=>Composite.remove(engine.world,b));handBodies=[];HAND_LENS.forEach((len,i)=>{const b=Bodies.rectangle(cx+len/2,cy,len,HAND_WIDTHS[i],{isStatic:true,collisionFilter:{category:4,mask:1},friction:0.4,restitution:0.5,label:'hand'});handBodies.push(b);Composite.add(engine.world,b);});}
   buildHandBodies();
-
-  function updateHandBodies(hA, mA, sA){
-    [hA, mA, sA].forEach((a,i)=>{
-      const len=HAND_LENS[i];
-      Body.setPosition(handBodies[i],{
-        x: cx + Math.cos(a)*len/2,
-        y: cy + Math.sin(a)*len/2
-      });
-      Body.setAngle(handBodies[i], a);
-    });
-  }
-
-  buildWalls(); spawnNums();
-
-  function nearSecHand(mx, my){
-    const len=r*0.65;
-    const ex=cx+Math.cos(secAngle)*len;
-    const ey=cy+Math.sin(secAngle)*len;
-    const dx=ex-cx, dy=ey-cy;
-    const t=Math.max(0,Math.min(1,((mx-cx)*dx+(my-cy)*dy)/(dx*dx+dy*dy)));
-    const nearX=cx+t*dx, nearY=cy+t*dy;
-    return Math.hypot(mx-nearX, my-nearY) < r*0.07;
-  }
-
-  cnv.addEventListener('mousedown',e=>{
-    const mx=e.offsetX, my=e.offsetY;
-    if(nearSecHand(mx,my)){ draggingSec=true; return; }
-    for(const b of numBodies){
-      if(Math.hypot(mx-b.position.x,my-b.position.y)<Math.max(b._bw,b._bh)*0.6){
-        dragBody=b; dox=mx-b.position.x; doy=my-b.position.y;
-        Body.setStatic(b,true); break;
-      }
-    }
-  });
-  let dragAccum=0, dragPrevAngle=null;
-  cnv.addEventListener('mousemove',e=>{
-    if(draggingSec){
-      const newA=Math.atan2(e.offsetY-cy,e.offsetX-cx);
-      if(dragPrevAngle!==null && !txt2Shown){
-        let diff=newA-dragPrevAngle;
-        if(diff>Math.PI) diff-=Math.PI*2;
-        if(diff<-Math.PI) diff+=Math.PI*2;
-        dragAccum+=Math.abs(diff);
-        const lapsFromDrag=Math.floor(dragAccum/(Math.PI*2));
-        if(lapsFromDrag+secLaps>=3){
-          txt2Shown=true;
-          txt2.classList.add('visible');
-          setTimeout(()=>txt2.classList.add('hiding'), 6000);
-        }
-      }
-      dragPrevAngle=newA;
-      secAngle=newA;
-    } else if(dragBody){
-      let nx=e.offsetX-dox, ny=e.offsetY-doy;
-      const d=Math.hypot(nx-cx,ny-cy);
-      if(d>r*0.85){const a=Math.atan2(ny-cy,nx-cx);nx=cx+Math.cos(a)*r*0.85;ny=cy+Math.sin(a)*r*0.85;}
-      Body.setPosition(dragBody,{x:nx,y:ny});
-    }
-  });
-  cnv.addEventListener('mouseup',()=>{
-    draggingSec=false; dragPrevAngle=null;
-    if(dragBody){Body.setStatic(dragBody,false);dragBody=null;}
-  });
-
-  function drawHand(angle, len, hi){
-    if(!handReady) return;
-    const h=HANDS[hi];
-    const dh = len / h.anchor;
-    const dw = dh * (h.sw / h.sh);
-    ctx.save();
-    ctx.translate(cx, cy);
-    ctx.rotate(angle + Math.PI/2);
-    ctx.drawImage(
-      handImg,
-      h.sx, h.sy, h.sw, h.sh,
-      -dw/2,
-      -len,
-      dw, dh
-    );
-    ctx.restore();
-  }
-
-  function drawNum(b){
-    if(!numReady) return;
-    const img = NUM_IMGS[b._n];
-    if(!img || !img.complete) return;
-    ctx.save();
-    ctx.translate(b.position.x, b.position.y);
-    ctx.rotate(b.angle);
-    ctx.drawImage(img, -b._bw/2, -b._bh/2, b._bw, b._bh);
-    ctx.restore();
-  }
-
-  let prevS = new Date().getSeconds();
-  function loop(){
-    if(!window._clockInited) return;
-    Engine.update(engine,1000/60);
-    ctx.clearRect(0,0,cnv.width,cnv.height);
-    ctx.save();
-    ctx.beginPath(); ctx.arc(cx,cy,r-1,0,Math.PI*2); ctx.clip();
-
-    const now=new Date();
-    const h=now.getHours()%12, m=now.getMinutes(), s=now.getSeconds();
-    const hA=((h+m/60)/12)*Math.PI*2-Math.PI/2;
-    const mA=((m+s/60)/60)*Math.PI*2-Math.PI/2;
-    if(!draggingSec){
-      const newSec=(s/60)*Math.PI*2-Math.PI/2;
-      if(s===0 && prevS!==0 && !txt2Shown){
-        secLaps++;
-        if(secLaps>=3){
-          txt2Shown=true;
-          txt2.classList.add('visible');
-          setTimeout(()=>txt2.classList.add('hiding'), 6000);
-        }
-      }
-      prevS=s;
-      secAngle=newSec;
-    }
-
-    updateHandBodies(hA, mA, secAngle);
-    drawHand(hA,       r*0.38, 0);
-    drawHand(mA,       r*0.52, 1);
-    drawHand(secAngle, r*0.65, 2);
-
-    numBodies.forEach(b=>{
-      const d=Math.hypot(b.position.x-cx,b.position.y-cy);
-      if(d>r*0.88 && !b.isStatic){
-        const a=Math.atan2(b.position.y-cy,b.position.x-cx);
-        Body.setPosition(b,{x:cx+Math.cos(a)*r*0.75,y:cy+Math.sin(a)*r*0.75});
-        Body.setVelocity(b,{x:0,y:0});
-      }
-      drawNum(b);
-    });
-
-    ctx.restore();
-    window._clockRAF=requestAnimationFrame(loop);
-  }
+  function updateHandBodies(hA,mA,sA){[hA,mA,sA].forEach((a,i)=>{const len=HAND_LENS[i];Body.setPosition(handBodies[i],{x:cx+Math.cos(a)*len/2,y:cy+Math.sin(a)*len/2});Body.setAngle(handBodies[i],a);});}
+  buildWalls();spawnNums();
+  function nearSecHand(mx,my){const len=r*0.65,ex=cx+Math.cos(secAngle)*len,ey=cy+Math.sin(secAngle)*len;const dx=ex-cx,dy=ey-cy;const t=Math.max(0,Math.min(1,((mx-cx)*dx+(my-cy)*dy)/(dx*dx+dy*dy)));return Math.hypot(mx-cx-t*dx,my-cy-t*dy)<r*0.07;}
+  cnv.addEventListener('mousedown',e=>{const mx=e.offsetX,my=e.offsetY;if(nearSecHand(mx,my)){draggingSec=true;return;}for(const b of numBodies){if(Math.hypot(mx-b.position.x,my-b.position.y)<Math.max(b._bw,b._bh)*0.6){dragBody=b;dox=mx-b.position.x;doy=my-b.position.y;Body.setStatic(b,true);break;}}});
+  let dragAccum=0,dragPrevAngle=null;
+  cnv.addEventListener('mousemove',e=>{if(draggingSec){const newA=Math.atan2(e.offsetY-cy,e.offsetX-cx);if(dragPrevAngle!==null&&!txt2Shown){let diff=newA-dragPrevAngle;if(diff>Math.PI)diff-=Math.PI*2;if(diff<-Math.PI)diff+=Math.PI*2;dragAccum+=Math.abs(diff);if(Math.floor(dragAccum/(Math.PI*2))+secLaps>=3){txt2Shown=true;txt2.classList.add('visible');setTimeout(()=>txt2.classList.add('hiding'),6000);}}dragPrevAngle=newA;secAngle=newA;}else if(dragBody){let nx=e.offsetX-dox,ny=e.offsetY-doy;const d=Math.hypot(nx-cx,ny-cy);if(d>r*0.85){const a=Math.atan2(ny-cy,nx-cx);nx=cx+Math.cos(a)*r*0.85;ny=cy+Math.sin(a)*r*0.85;}Body.setPosition(dragBody,{x:nx,y:ny});}});
+  cnv.addEventListener('mouseup',()=>{draggingSec=false;dragPrevAngle=null;if(dragBody){Body.setStatic(dragBody,false);dragBody=null;}});
+  function drawHand(angle,len,hi){if(!handReady)return;const h=HANDS[hi];const dh=len/h.anchor,dw=dh*(h.sw/h.sh);ctx.save();ctx.translate(cx,cy);ctx.rotate(angle+Math.PI/2);ctx.drawImage(handImg,h.sx,h.sy,h.sw,h.sh,-dw/2,-len,dw,dh);ctx.restore();}
+  function drawNum(b){if(!numReady)return;const img=NUM_IMGS[b._n];if(!img||!img.complete)return;ctx.save();ctx.translate(b.position.x,b.position.y);ctx.rotate(b.angle);ctx.drawImage(img,-b._bw/2,-b._bh/2,b._bw,b._bh);ctx.restore();}
+  let prevS=new Date().getSeconds();
+  function loop(){if(!window._clockInited)return;Engine.update(engine,1000/60);ctx.clearRect(0,0,cnv.width,cnv.height);ctx.save();ctx.beginPath();ctx.arc(cx,cy,r-1,0,Math.PI*2);ctx.clip();const now=new Date();const h=now.getHours()%12,m=now.getMinutes(),s=now.getSeconds();const hA=((h+m/60)/12)*Math.PI*2-Math.PI/2;const mA=((m+s/60)/60)*Math.PI*2-Math.PI/2;if(!draggingSec){const newSec=(s/60)*Math.PI*2-Math.PI/2;if(s===0&&prevS!==0&&!txt2Shown){secLaps++;if(secLaps>=3){txt2Shown=true;txt2.classList.add('visible');setTimeout(()=>txt2.classList.add('hiding'),6000);}}prevS=s;secAngle=newSec;}updateHandBodies(hA,mA,secAngle);drawHand(hA,r*0.38,0);drawHand(mA,r*0.52,1);drawHand(secAngle,r*0.65,2);numBodies.forEach(b=>{const d=Math.hypot(b.position.x-cx,b.position.y-cy);if(d>r*0.88&&!b.isStatic){const a=Math.atan2(b.position.y-cy,b.position.x-cx);Body.setPosition(b,{x:cx+Math.cos(a)*r*0.75,y:cy+Math.sin(a)*r*0.75});Body.setVelocity(b,{x:0,y:0});}drawNum(b);});ctx.restore();window._clockRAF=requestAnimationFrame(loop);}
   loop();
 }
 
 requestAnimationFrame(animate);
 
+/* ===== 拼图场景 ===== */
+const PUZZLE_BG_W=1672,PUZZLE_BG_H=941;
+const SAVED=JSON.parse(localStorage.getItem('puzzle_settings')||'null');
+let PUZZLE_AREA=SAVED?.area||{left:0.190,top:0.130,right:0.820,bottom:0.870};
+let PUZZLE_FULL_SCALE=SAVED?.scale??1.28;
+let PUZZLE_SCATTER_SCALE=SAVED?.scatter??0.80;
+let PIECE_ADJUSTMENTS=JSON.parse(localStorage.getItem('puzzle_piece_adjustments')||'{}');
+const PIECE_MAP={1:{col:0,row:0},2:{col:1,row:0},3:{col:2,row:0},4:{col:3,row:0},5:{col:0,row:1},6:{col:1,row:1},7:{col:2,row:1},8:{col:3,row:1},9:{col:0,row:2},10:{col:1,row:2},11:{col:2,row:2},12:{col:3,row:2}};
+const PUZZLE_COLS=4,PUZZLE_ROWS=3;
+const PUZZLE_IMGS=[];let puzzleLoadedCount=0,puzzleReady=false;
+for(let i=1;i<=12;i++){const img=new Image();img.src=`images5/${i}.png`;img.onload=()=>{puzzleLoadedCount++;if(puzzleLoadedCount===12)puzzleReady=true;};img.onerror=()=>{puzzleLoadedCount++;if(puzzleLoadedCount===12)puzzleReady=true;};PUZZLE_IMGS.push(img);}
+const puzzleCanvas=document.getElementById('puzzle-canvas');
+const pctx=puzzleCanvas.getContext('2d');
 
-/* ============================================================
-   新增：拼图场景 puzzle
-   ============================================================ */
-
-// 桌面拼图.jpg 原图尺寸
-const PUZZLE_BG_W = 1672, PUZZLE_BG_H = 941;
-
-// 拼图区域参数（可在调试面板里动态调整，调好后把数值复制回来）
-// 从 localStorage 读取上次保存的值
-const SAVED = JSON.parse(localStorage.getItem('puzzle_settings') || 'null');
-let PUZZLE_AREA = SAVED?.area || {
-  left:   0.190,
-  top:    0.130,
-  right:  0.820,
-  bottom: 0.870
-};
-let PUZZLE_FULL_SCALE = SAVED?.scale ?? 1.28;
-let PUZZLE_SCATTER_SCALE = SAVED?.scatter ?? 0.80;
-
-// 每块拼图独立的吸附位置偏移和尺寸倍数
-// 结构：{ 1: {ox,oy,sw,sh}, 2: {...}, ... }
-let PIECE_ADJUSTMENTS = JSON.parse(localStorage.getItem('puzzle_piece_adjustments') || '{}');
-
-// 从图片观察的正确排列（行优先，左到右）：
-// 分开图里：行0=块1,2,3,4  行1=块5,6,7,8  行2=块9,10,11,12
-// 但注意：块的编号对应的图片内容，需要和底图的格子对齐
-// 这里用一个映射表，key=块index(1-12)，value={col,row}
-const PIECE_MAP = {
-   1:{col:0,row:0},  2:{col:1,row:0},  3:{col:2,row:0},  4:{col:3,row:0},
-   5:{col:0,row:1},  6:{col:1,row:1},  7:{col:2,row:1},  8:{col:3,row:1},
-   9:{col:0,row:2}, 10:{col:1,row:2}, 11:{col:2,row:2}, 12:{col:3,row:2},
-};
-const PUZZLE_COLS = 4, PUZZLE_ROWS = 3;
-
-// 调试模式：URL加 ?debug=1 或 ?edit=1 显示调整面板
-const PUZZLE_DEBUG = new URLSearchParams(location.search).get('debug') === '1';
-const PUZZLE_EDIT = new URLSearchParams(location.search).get('edit') === '1' || PUZZLE_DEBUG;
-
-// edit 模式：页面加载完后立即显示面板
-if(PUZZLE_EDIT){
-  window.addEventListener('DOMContentLoaded', () => {
-    const editor = document.getElementById('puzzle-editor');
-    if(editor){
-      editor.classList.add('visible');
-      console.log('[Puzzle Editor] 调整面板已显示');
-    } else {
-      console.error('[Puzzle Editor] 找不到 #puzzle-editor 元素');
-    }
-  });
+class PuzzlePiece{
+  constructor(index,col,row){this.index=index;const mapped=PIECE_MAP[index];this.col=mapped?mapped.col:col;this.row=mapped?mapped.row:row;this.img=PUZZLE_IMGS[index-1];this.targetX=0;this.targetY=0;this.fullW=0;this.fullH=0;this.scatterW=0;this.scatterH=0;this.x=0;this.y=0;this.w=0;this.h=0;this.rotation=0;this.isPlaced=false;this.isDragging=false;this.dragOffsetX=0;this.dragOffsetY=0;this.snapAnim=false;this.snapStartTime=0;this.snapFromX=0;this.snapFromY=0;this.snapFromW=0;this.snapFromH=0;this.snapFromRot=0;const saved=PIECE_ADJUSTMENTS[index]||{};this.offsetX=saved.ox??0;this.offsetY=saved.oy??0;this.scaleW=saved.sw??1.0;this.scaleH=saved.sh??1.0;}
+  updateLayout(bgRect){const areaX=bgRect.x+PUZZLE_AREA.left*bgRect.w,areaY=bgRect.y+PUZZLE_AREA.top*bgRect.h;const areaW=(PUZZLE_AREA.right-PUZZLE_AREA.left)*bgRect.w,areaH=(PUZZLE_AREA.bottom-PUZZLE_AREA.top)*bgRect.h;const cellW=areaW/PUZZLE_COLS,cellH=areaH/PUZZLE_ROWS;this.fullW=cellW*PUZZLE_FULL_SCALE;this.fullH=cellH*PUZZLE_FULL_SCALE;this.scatterW=this.fullW*PUZZLE_SCATTER_SCALE;this.scatterH=this.fullH*PUZZLE_SCATTER_SCALE;this.targetX=areaX+(this.col+0.5)*cellW+this.offsetX;this.targetY=areaY+(this.row+0.5)*cellH+this.offsetY;this.fullW=cellW*PUZZLE_FULL_SCALE*this.scaleW;this.fullH=cellH*PUZZLE_FULL_SCALE*this.scaleH;if(this.w===0){this.w=this.scatterW;this.h=this.scatterH;}else{if(this.isPlaced){this.w=this.fullW;this.h=this.fullH;this.x=this.targetX;this.y=this.targetY;}else{this.w=this.scatterW;this.h=this.scatterH;}}}
+  scatter(canvasW,canvasH,bgRect){const margin=Math.min(canvasW,canvasH)*0.04,positions=[],halfW=this.scatterW*0.6,halfH=this.scatterH*0.6;if(bgRect.y>halfH+margin)positions.push({x:margin+halfW+Math.random()*(canvasW-margin*2-halfW*2),y:margin+halfH+Math.random()*(bgRect.y-halfH*2-margin)});if(canvasH-(bgRect.y+bgRect.h)>halfH+margin)positions.push({x:margin+halfW+Math.random()*(canvasW-margin*2-halfW*2),y:bgRect.y+bgRect.h+halfH+Math.random()*(canvasH-bgRect.y-bgRect.h-halfH*2-margin)});if(bgRect.x>halfW+margin)positions.push({x:margin+halfW+Math.random()*(bgRect.x-halfW*2-margin),y:margin+halfH+Math.random()*(canvasH-margin*2-halfH*2)});if(canvasW-(bgRect.x+bgRect.w)>halfW+margin)positions.push({x:bgRect.x+bgRect.w+halfW+Math.random()*(canvasW-bgRect.x-bgRect.w-halfW*2-margin),y:margin+halfH+Math.random()*(canvasH-margin*2-halfH*2)});if(positions.length===0)positions.push({x:bgRect.x+halfW+Math.random()*(bgRect.w-halfW*2),y:bgRect.y+halfH+Math.random()*(bgRect.h-halfH*2)});const p=positions[Math.floor(Math.random()*positions.length)];this.x=p.x;this.y=p.y;this.rotation=(Math.random()-0.5)*0.5;}
+  contains(px,py){const cos=Math.cos(-this.rotation),sin=Math.sin(-this.rotation),dx=px-this.x,dy=py-this.y;const lx=dx*cos-dy*sin,ly=dx*sin+dy*cos;return lx>=-this.w/2&&lx<=this.w/2&&ly>=-this.h/2&&ly<=this.h/2;}
+  trySnap(){const dx=this.x-this.targetX,dy=this.y-this.targetY,dist=Math.sqrt(dx*dx+dy*dy);if(dist<Math.max(this.fullW,this.fullH)*0.40){this.snapAnim=true;this.snapStartTime=performance.now();this.snapFromX=this.x;this.snapFromY=this.y;this.snapFromW=this.w;this.snapFromH=this.h;this.snapFromRot=this.rotation;this.isPlaced=true;return true;}return false;}
+  updateSnapAnim(now){if(!this.snapAnim)return;const t=Math.min((now-this.snapStartTime)/300,1),ease=1-Math.pow(1-t,3);this.x=this.snapFromX+(this.targetX-this.snapFromX)*ease;this.y=this.snapFromY+(this.targetY-this.snapFromY)*ease;this.w=this.snapFromW+(this.fullW-this.snapFromW)*ease;this.h=this.snapFromH+(this.fullH-this.snapFromH)*ease;this.rotation=this.snapFromRot*(1-ease);if(t>=1){this.snapAnim=false;this.x=this.targetX;this.y=this.targetY;this.w=this.fullW;this.h=this.fullH;this.rotation=0;}}
+  draw(ctx){if(!this.img||!this.img.complete)return;ctx.save();ctx.translate(this.x,this.y);ctx.rotate(this.rotation);if(this.isPlaced){ctx.shadowColor='rgba(0,0,0,0.15)';ctx.shadowBlur=4;ctx.shadowOffsetY=2;}else if(this.isDragging){ctx.shadowColor='rgba(0,0,0,0.4)';ctx.shadowBlur=16;ctx.shadowOffsetY=8;}else{ctx.shadowColor='rgba(0,0,0,0.25)';ctx.shadowBlur=8;ctx.shadowOffsetY=4;}ctx.drawImage(this.img,-this.w/2,-this.h/2,this.w,this.h);ctx.restore();}
 }
 
-// 12张拼图块图片
-const PUZZLE_IMGS = [];
-let puzzleLoadedCount = 0;
-let puzzleReady = false;
-for(let i=1; i<=12; i++){
-  const img = new Image();
-  img.src = `images5/${i}.png`;
-  img.onload = ()=>{
-    puzzleLoadedCount++;
-    if(puzzleLoadedCount === 12) puzzleReady = true;
-  };
-  img.onerror = ()=>{
-    puzzleLoadedCount++;
-    if(puzzleLoadedCount === 12) puzzleReady = true;
-    console.warn(`Failed to load 拼图 (${i}).png`);
-  };
-  PUZZLE_IMGS.push(img);
-}
+let puzzlePieces=[],puzzleDragging=null,puzzleInited=false,puzzleRAF=null,puzzleCompleteShown=false;
+function getPuzzleBgRect(){const vw=window.innerWidth,vh=window.innerHeight;const scale=Math.max(vw/PUZZLE_BG_W,vh/PUZZLE_BG_H);const w=PUZZLE_BG_W*scale,h=PUZZLE_BG_H*scale;return{x:(vw-w)/2,y:(vh-h)/2,w,h};}
+function resizePuzzleCanvas(){puzzleCanvas.width=window.innerWidth;puzzleCanvas.height=window.innerHeight;const bgRect=getPuzzleBgRect();puzzlePieces.forEach(p=>{const oldX=p.x,oldY=p.y,oldTX=p.targetX,oldTY=p.targetY;p.updateLayout(bgRect);if(!p.isPlaced&&oldTX!==0){p.x=p.targetX+(oldX-oldTX);p.y=p.targetY+(oldY-oldTY);}});}
+function initPuzzle(){if(puzzleInited)return;if(!puzzleReady){setTimeout(initPuzzle,100);return;}puzzleInited=true;puzzleCompleteShown=false;document.getElementById('puzzle-complete').classList.remove('visible');document.getElementById('puzzle-count').textContent='0';puzzleCanvas.width=window.innerWidth;puzzleCanvas.height=window.innerHeight;const bgRect=getPuzzleBgRect();puzzlePieces=[];for(let i=0;i<12;i++){const col=i%PUZZLE_COLS,row=Math.floor(i/PUZZLE_COLS);const piece=new PuzzlePiece(i+1,col,row);piece.updateLayout(bgRect);piece.scatter(puzzleCanvas.width,puzzleCanvas.height,bgRect);puzzlePieces.push(piece);}puzzleLoop();}
+function puzzleLoop(){if(!document.getElementById('scene-puzzle').classList.contains('active'))return;const now=performance.now();puzzlePieces.forEach(p=>p.updateSnapAnim(now));pctx.clearRect(0,0,puzzleCanvas.width,puzzleCanvas.height);puzzlePieces.filter(p=>p.isPlaced).forEach(p=>p.draw(pctx));puzzlePieces.filter(p=>!p.isPlaced&&p!==puzzleDragging).forEach(p=>p.draw(pctx));if(puzzleDragging)puzzleDragging.draw(pctx);puzzleRAF=requestAnimationFrame(puzzleLoop);}
 
-const puzzleCanvas = document.getElementById('puzzle-canvas');
-const pctx = puzzleCanvas.getContext('2d');
+puzzleCanvas.addEventListener('mousedown',e=>{const x=e.offsetX,y=e.offsetY;let foundPiece=null;for(let i=puzzlePieces.length-1;i>=0;i--){const p=puzzlePieces[i];if(p.isPlaced)continue;if(p.contains(x,y)){foundPiece=p;break;}}if(!foundPiece){let minDist=Infinity,nearestIdx=-1;for(let i=puzzlePieces.length-1;i>=0;i--){const p=puzzlePieces[i];if(p.isPlaced)continue;const dx=x-p.x,dy=y-p.y,dist=Math.sqrt(dx*dx+dy*dy);if(dist<Math.max(p.w,p.h)*0.65&&dist<minDist){minDist=dist;nearestIdx=i;}}if(nearestIdx>=0)foundPiece=puzzlePieces[nearestIdx];}if(foundPiece){puzzleDragging=foundPiece;foundPiece.isDragging=true;foundPiece.dragOffsetX=x-foundPiece.x;foundPiece.dragOffsetY=y-foundPiece.y;const idx=puzzlePieces.indexOf(foundPiece);if(idx>=0){puzzlePieces.splice(idx,1);puzzlePieces.push(foundPiece);}puzzleCanvas.style.cursor='grabbing';}});
+puzzleCanvas.addEventListener('mousemove',e=>{if(puzzleDragging){puzzleDragging.x=e.offsetX-puzzleDragging.dragOffsetX;puzzleDragging.y=e.offsetY-puzzleDragging.dragOffsetY;}else{const x=e.offsetX,y=e.offsetY;let onPiece=false;for(let i=puzzlePieces.length-1;i>=0;i--){const p=puzzlePieces[i];if(p.isPlaced)continue;if(Math.sqrt((x-p.x)**2+(y-p.y)**2)<Math.max(p.w,p.h)*0.65){onPiece=true;break;}}puzzleCanvas.style.cursor=onPiece?'grab':'default';}});
+puzzleCanvas.addEventListener('mouseup',()=>{if(puzzleDragging){puzzleDragging.isDragging=false;if(puzzleDragging.trySnap())updatePuzzleProgress();puzzleDragging=null;puzzleCanvas.style.cursor='default';}});
+puzzleCanvas.addEventListener('mouseleave',()=>{if(puzzleDragging){puzzleDragging.isDragging=false;puzzleDragging=null;puzzleCanvas.style.cursor='default';}});
 
-// 拼图块数据
-class PuzzlePiece {
-  constructor(index, col, row){
-    this.index = index;
-    // 优先使用 PIECE_MAP 里的正确位置
-    const mapped = PIECE_MAP[index];
-    this.col = mapped ? mapped.col : col;
-    this.row = mapped ? mapped.row : row;
-    this.img = PUZZLE_IMGS[index-1];
-    this.targetX = 0;
-    this.targetY = 0;
-    this.fullW = 0;
-    this.fullH = 0;
-    this.scatterW = 0;
-    this.scatterH = 0;
-    this.x = 0;
-    this.y = 0;
-    this.w = 0;
-    this.h = 0;
-    this.rotation = 0;
-    this.isPlaced = false;
-    this.isDragging = false;
-    this.dragOffsetX = 0;
-    this.dragOffsetY = 0;
-    // 吸附动画
-    this.snapAnim = false;
-    this.snapStartTime = 0;
-    this.snapFromX = 0;
-    this.snapFromY = 0;
-    this.snapFromW = 0;
-    this.snapFromH = 0;
-    this.snapFromRot = 0;
-    // 每块独立的吸附位置偏移和尺寸倍数（从 localStorage 读取）
-    const saved = PIECE_ADJUSTMENTS[index] || {};
-    this.offsetX   = saved.ox ?? 0;   // 吸附位置 X 偏移（像素，相对于格子中心）
-    this.offsetY   = saved.oy ?? 0;   // 吸附位置 Y 偏移
-    this.scaleW    = saved.sw ?? 1.0; // 吸附后宽度倍数（相对 fullW）
-    this.scaleH    = saved.sh ?? 1.0; // 吸附后高度倍数
-  }
-  
-  // 计算屏幕上的实际位置和目标尺寸
-  updateLayout(bgRect){
-    const areaX = bgRect.x + PUZZLE_AREA.left * bgRect.w;
-    const areaY = bgRect.y + PUZZLE_AREA.top * bgRect.h;
-    const areaW = (PUZZLE_AREA.right - PUZZLE_AREA.left) * bgRect.w;
-    const areaH = (PUZZLE_AREA.bottom - PUZZLE_AREA.top) * bgRect.h;
-    
-    // 每块拼图的"格子"尺寸
-    const cellW = areaW / PUZZLE_COLS;
-    const cellH = areaH / PUZZLE_ROWS;
-    
-    // 完整尺寸：拼图块PNG含凸起部分，比格子大一些
-    const fullScale = PUZZLE_FULL_SCALE;
-    this.fullW = cellW * fullScale;
-    this.fullH = cellH * fullScale;
-    
-    // 散落时的尺寸
-    this.scatterW = this.fullW * PUZZLE_SCATTER_SCALE;
-    this.scatterH = this.fullH * PUZZLE_SCATTER_SCALE;
-    
-    // 目标位置中心：格子中心 + 该块的独立偏移
-    this.targetX = areaX + (this.col + 0.5) * cellW + this.offsetX;
-    this.targetY = areaY + (this.row + 0.5) * cellH + this.offsetY;
-    // 完整尺寸再乘以该块独立的尺寸倍数
-    this.fullW = cellW * fullScale * this.scaleW;
-    this.fullH = cellH * fullScale * this.scaleH;
-    
-    // 初始化当前显示尺寸
-    if(this.w === 0){
-      this.w = this.scatterW;
-      this.h = this.scatterH;
-    } else {
-      // resize时按当前状态等比调整
-      if(this.isPlaced){
-        this.w = this.fullW;
-        this.h = this.fullH;
-        this.x = this.targetX;
-        this.y = this.targetY;
-      } else {
-        this.w = this.scatterW;
-        this.h = this.scatterH;
-      }
-    }
-  }
-  
-  // 把拼图块散落到屏幕边缘区域
-  scatter(canvasW, canvasH, bgRect){
-    const margin = Math.min(canvasW, canvasH) * 0.04;
-    const positions = [];
-    const halfW = this.scatterW * 0.6;
-    const halfH = this.scatterH * 0.6;
-    
-    // 上方区域
-    if(bgRect.y > halfH + margin){
-      positions.push({
-        x: margin + halfW + Math.random() * (canvasW - margin*2 - halfW*2),
-        y: margin + halfH + Math.random() * (bgRect.y - halfH*2 - margin)
-      });
-    }
-    // 下方
-    if(canvasH - (bgRect.y + bgRect.h) > halfH + margin){
-      positions.push({
-        x: margin + halfW + Math.random() * (canvasW - margin*2 - halfW*2),
-        y: bgRect.y + bgRect.h + halfH + Math.random() * (canvasH - bgRect.y - bgRect.h - halfH*2 - margin)
-      });
-    }
-    // 左侧
-    if(bgRect.x > halfW + margin){
-      positions.push({
-        x: margin + halfW + Math.random() * (bgRect.x - halfW*2 - margin),
-        y: margin + halfH + Math.random() * (canvasH - margin*2 - halfH*2)
-      });
-    }
-    // 右侧
-    if(canvasW - (bgRect.x + bgRect.w) > halfW + margin){
-      positions.push({
-        x: bgRect.x + bgRect.w + halfW + Math.random() * (canvasW - bgRect.x - bgRect.w - halfW*2 - margin),
-        y: margin + halfH + Math.random() * (canvasH - margin*2 - halfH*2)
-      });
-    }
-    
-    if(positions.length === 0){
-      positions.push({
-        x: bgRect.x + halfW + Math.random() * (bgRect.w - halfW*2),
-        y: bgRect.y + halfH + Math.random() * (bgRect.h - halfH*2)
-      });
-    }
-    
-    const p = positions[Math.floor(Math.random() * positions.length)];
-    this.x = p.x;
-    this.y = p.y;
-    this.rotation = (Math.random() - 0.5) * 0.5;
-  }
-  
-  // 判断点是否在该块上（扩大判定区域，更容易点击）
-  contains(px, py){
-    // 反向旋转后判断矩形
-    const cos = Math.cos(-this.rotation);
-    const sin = Math.sin(-this.rotation);
-    const dx = px - this.x;
-    const dy = py - this.y;
-    const lx = dx * cos - dy * sin;
-    const ly = dx * sin + dy * cos;
-    // 扩大 30% 点击区域，更容易点中（透明PNG四周有空白也能点）
-    const hw = this.w / 2 * 1.0;
-    const hh = this.h / 2 * 1.0;
-    return lx >= -hw && lx <= hw && ly >= -hh && ly <= hh;
-  }
-  
-  // 检测是否靠近目标位置，触发吸附（带动画）
-  trySnap(){
-    const dx = this.x - this.targetX;
-    const dy = this.y - this.targetY;
-    const dist = Math.sqrt(dx*dx + dy*dy);
-    // 增大吸附范围：拼图块最大尺寸的 40%
-    const threshold = Math.max(this.fullW, this.fullH) * 0.40;
-    if(dist < threshold){
-      // 启动吸附动画
-      this.snapAnim = true;
-      this.snapStartTime = performance.now();
-      this.snapFromX = this.x;
-      this.snapFromY = this.y;
-      this.snapFromW = this.w;
-      this.snapFromH = this.h;
-      this.snapFromRot = this.rotation;
-      this.isPlaced = true;
-      return true;
-    }
-    return false;
-  }
-  
-  // 更新吸附动画
-  updateSnapAnim(now){
-    if(!this.snapAnim) return;
-    const duration = 300; // 300ms 吸附动画
-    const t = Math.min((now - this.snapStartTime) / duration, 1);
-    // easeOutBack：带一点弹性
-    const ease = 1 - Math.pow(1 - t, 3);
-    
-    this.x = this.snapFromX + (this.targetX - this.snapFromX) * ease;
-    this.y = this.snapFromY + (this.targetY - this.snapFromY) * ease;
-    this.w = this.snapFromW + (this.fullW - this.snapFromW) * ease;
-    this.h = this.snapFromH + (this.fullH - this.snapFromH) * ease;
-    this.rotation = this.snapFromRot + (0 - this.snapFromRot) * ease;
-    
-    if(t >= 1){
-      this.snapAnim = false;
-      this.x = this.targetX;
-      this.y = this.targetY;
-      this.w = this.fullW;
-      this.h = this.fullH;
-      this.rotation = 0;
-    }
-  }
-  
-  draw(ctx){
-    if(!this.img || !this.img.complete) return;
-    ctx.save();
-    ctx.translate(this.x, this.y);
-    ctx.rotate(this.rotation);
-    
-    // 已放好时的轻微阴影
-    if(this.isPlaced){
-      ctx.shadowColor = 'rgba(0,0,0,0.15)';
-      ctx.shadowBlur = 4;
-      ctx.shadowOffsetY = 2;
-    } else if(this.isDragging){
-      // 拖动时的阴影
-      ctx.shadowColor = 'rgba(0,0,0,0.4)';
-      ctx.shadowBlur = 16;
-      ctx.shadowOffsetY = 8;
-    } else {
-      // 散落时的阴影
-      ctx.shadowColor = 'rgba(0,0,0,0.25)';
-      ctx.shadowBlur = 8;
-      ctx.shadowOffsetY = 4;
-    }
-    
-    ctx.drawImage(this.img, -this.w/2, -this.h/2, this.w, this.h);
-    ctx.restore();
-  }
-}
-
-let puzzlePieces = [];
-let puzzleDragging = null;
-let puzzleInited = false;
-let puzzleRAF = null;
-let puzzleCompleteShown = false;
-
-// 计算桌面拼图.jpg 在屏幕上的实际矩形（用 cover 模式）
-function getPuzzleBgRect(){
-  const vw = window.innerWidth, vh = window.innerHeight;
-  const scale = Math.max(vw / PUZZLE_BG_W, vh / PUZZLE_BG_H);
-  const w = PUZZLE_BG_W * scale;
-  const h = PUZZLE_BG_H * scale;
-  return {
-    x: (vw - w) / 2,
-    y: (vh - h) / 2,
-    w: w,
-    h: h
-  };
-}
-
-function resizePuzzleCanvas(){
-  puzzleCanvas.width = window.innerWidth;
-  puzzleCanvas.height = window.innerHeight;
-  const bgRect = getPuzzleBgRect();
-  puzzlePieces.forEach(p => {
-    const oldX = p.x, oldY = p.y;
-    const oldTargetX = p.targetX, oldTargetY = p.targetY;
-    p.updateLayout(bgRect);
-    // 如果未放好，按相对偏移保持位置（避免resize后跳）
-    if(!p.isPlaced && oldTargetX !== 0){
-      p.x = p.targetX + (oldX - oldTargetX);
-      p.y = p.targetY + (oldY - oldTargetY);
-    }
-  });
-}
-
-function initPuzzle(){
-  if(puzzleInited) return;
-  
-  // 等图片加载完
-  if(!puzzleReady){
-    setTimeout(initPuzzle, 100);
-    return;
-  }
-  
-  puzzleInited = true;
-  puzzleCompleteShown = false;
-  document.getElementById('puzzle-complete').classList.remove('visible');
-  document.getElementById('puzzle-count').textContent = '0';
-  
-  puzzleCanvas.width = window.innerWidth;
-  puzzleCanvas.height = window.innerHeight;
-  
-  const bgRect = getPuzzleBgRect();
-  
-  // 创建12块拼图
-  puzzlePieces = [];
-  for(let i = 0; i < 12; i++){
-    const col = i % PUZZLE_COLS;
-    const row = Math.floor(i / PUZZLE_COLS);
-    const piece = new PuzzlePiece(i + 1, col, row);
-    piece.updateLayout(bgRect);
-    piece.scatter(puzzleCanvas.width, puzzleCanvas.height, bgRect);
-    puzzlePieces.push(piece);
-  }
-  
-  // 启动渲染循环
-  puzzleLoop();
-}
-
-function puzzleLoop(){
-  if(!document.getElementById('scene-puzzle').classList.contains('active')) return;
-  
-  const now = performance.now();
-  
-  // 更新吸附动画
-  puzzlePieces.forEach(p => p.updateSnapAnim(now));
-  
-  pctx.clearRect(0, 0, puzzleCanvas.width, puzzleCanvas.height);
-  
-  // 吸附提示框已隐藏
-  
-  // 先画已放好的，再画未放好的，最后画拖动的（最上层）
-  const placed = puzzlePieces.filter(p => p.isPlaced);
-  const unplaced = puzzlePieces.filter(p => !p.isPlaced && p !== puzzleDragging);
-  
-  placed.forEach(p => p.draw(pctx));
-  unplaced.forEach(p => p.draw(pctx));
-  if(puzzleDragging) puzzleDragging.draw(pctx);
-  
-  puzzleRAF = requestAnimationFrame(puzzleLoop);
-}
-
-// 拖拽事件
-puzzleCanvas.addEventListener('mousedown', e => {
-  const x = e.offsetX, y = e.offsetY;
-  
-  // 第一轮：精确判定（最上层优先）
-  let foundPiece = null;
-  for(let i = puzzlePieces.length - 1; i >= 0; i--){
-    const p = puzzlePieces[i];
-    if(p.isPlaced) continue;
-    if(p.contains(x, y)){
-      foundPiece = p;
-      break;
-    }
-  }
-  
-  // 第二轮：如果精确判定没中，找最近的拼图块（在合理范围内）
-  if(!foundPiece){
-    let minDist = Infinity;
-    let nearestIdx = -1;
-    for(let i = puzzlePieces.length - 1; i >= 0; i--){
-      const p = puzzlePieces[i];
-      if(p.isPlaced) continue;
-      const dx = x - p.x;
-      const dy = y - p.y;
-      const dist = Math.sqrt(dx*dx + dy*dy);
-      // 在拼图块尺寸的 60% 范围内都算"靠近"
-      const reach = Math.max(p.w, p.h) * 0.65;
-      if(dist < reach && dist < minDist){
-        minDist = dist;
-        nearestIdx = i;
-      }
-    }
-    if(nearestIdx >= 0){
-      foundPiece = puzzlePieces[nearestIdx];
-    }
-  }
-  
-  if(foundPiece){
-    puzzleDragging = foundPiece;
-    foundPiece.isDragging = true;
-    foundPiece.dragOffsetX = x - foundPiece.x;
-    foundPiece.dragOffsetY = y - foundPiece.y;
-    // 移到最上层
-    const idx = puzzlePieces.indexOf(foundPiece);
-    if(idx >= 0){
-      puzzlePieces.splice(idx, 1);
-      puzzlePieces.push(foundPiece);
-    }
-    puzzleCanvas.style.cursor = 'grabbing';
-  }
-});
-
-puzzleCanvas.addEventListener('mousemove', e => {
-  if(puzzleDragging){
-    puzzleDragging.x = e.offsetX - puzzleDragging.dragOffsetX;
-    puzzleDragging.y = e.offsetY - puzzleDragging.dragOffsetY;
-  } else {
-    // hover：显示 grab 光标（也用宽松判定）
-    const x = e.offsetX, y = e.offsetY;
-    let onPiece = false;
-    for(let i = puzzlePieces.length - 1; i >= 0; i--){
-      const p = puzzlePieces[i];
-      if(p.isPlaced) continue;
-      const dx = x - p.x;
-      const dy = y - p.y;
-      const dist = Math.sqrt(dx*dx + dy*dy);
-      if(dist < Math.max(p.w, p.h) * 0.65){
-        onPiece = true;
-        break;
-      }
-    }
-    puzzleCanvas.style.cursor = onPiece ? 'grab' : 'default';
-  }
-});
-
-puzzleCanvas.addEventListener('mouseup', () => {
-  if(puzzleDragging){
-    puzzleDragging.isDragging = false;
-    const snapped = puzzleDragging.trySnap();
-    if(snapped){
-      updatePuzzleProgress();
-    }
-    puzzleDragging = null;
-    puzzleCanvas.style.cursor = 'default';
-  }
-});
-
-puzzleCanvas.addEventListener('mouseleave', () => {
-  if(puzzleDragging){
-    puzzleDragging.isDragging = false;
-    puzzleDragging = null;
-    puzzleCanvas.style.cursor = 'default';
-  }
-});
-
+/* ===== 拼图完成 → 播放城堡视频 → 跳转 scene2 ===== */
 function updatePuzzleProgress(){
   const count = puzzlePieces.filter(p => p.isPlaced).length;
   document.getElementById('puzzle-count').textContent = count;
+
+  if (count >= 12 && !puzzleCompleteShown) {
+    puzzleCompleteShown = true;
+
+    // 先显示完成提示
+    document.getElementById('puzzle-complete').classList.add('visible');
+
+    // 1.5秒后播放城堡视频
+    setTimeout(() => {
+      const wrap = document.getElementById('castle-video-wrap');
+      const video = document.getElementById('castle-video');
+      wrap.style.display = 'block';
+      video.currentTime = 0;
+      video.play().catch(() => {});
+
+      // 视频播放完毕后回到本场景（卧室）
+      video.onended = () => {
+        window.location.href = 'scene5.html';
+      };
+
+      // 保险：若视频无法播放，8秒后也跳回
+      setTimeout(() => {
+        if (wrap.style.display !== 'none') {
+          window.location.href = 'scene5.html';
+        }
+      }, 8000);
+    }, 1500);
+  }
 }
 
-// 入口：点击客厅里的拼图
-document.getElementById('puzzle-hotspot').addEventListener('click', () => {
-  fadeTo(() => {
-    document.getElementById('scene-bedroom').classList.remove('active');
-    document.getElementById('scene-puzzle').classList.add('active');
-    setTimeout(initPuzzle, 50);
-  });
-});
-
-// 门：跳转到 scene2.html
-document.getElementById('door-hotspot').addEventListener('click', () => {
-  fadeTo(() => {
-    window.location.href = 'scene2.html';
-  });
-});
-
-function closePuzzle(){
-  fadeTo(() => {
-    document.getElementById('scene-puzzle').classList.remove('active');
-    document.getElementById('scene-bedroom').classList.add('active');
-    if(puzzleRAF){ cancelAnimationFrame(puzzleRAF); puzzleRAF = null; }
-    puzzleInited = false;
-    puzzlePieces = [];
-    puzzleDragging = null;
-  });
-}
-
-
+document.getElementById('puzzle-hotspot').addEventListener('click',()=>{fadeTo(()=>{document.getElementById('scene-bedroom').classList.remove('active');document.getElementById('scene-puzzle').classList.add('active');setTimeout(initPuzzle,50);});});
+document.getElementById('door-hotspot').addEventListener('click',()=>{fadeTo(()=>{window.location.href='scene2.html';});});
+function closePuzzle(){fadeTo(()=>{document.getElementById('scene-puzzle').classList.remove('active');document.getElementById('scene-bedroom').classList.add('active');if(puzzleRAF){cancelAnimationFrame(puzzleRAF);puzzleRAF=null;}puzzleInited=false;puzzlePieces=[];puzzleDragging=null;});}
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.3/p5.min.js"></script>
 </body>
